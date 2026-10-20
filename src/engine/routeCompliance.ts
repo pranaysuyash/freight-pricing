@@ -134,6 +134,13 @@ export function simulateRouteCompliance(input: RouteComplianceInput): {
   const kpraFt = input.kpraDistanceFt ?? 39.5;
   const cogRatio = input.cargoCogRatio ?? 0.5;
 
+  const baseSteer = Math.round(tractorTare * 0.5882); // approx 10,000 lbs steer
+  const baseDrive = tractorTare - baseSteer;          // approx 7,000 lbs drive tandem
+  const baseTrailer = trailerTare;
+
+  const initialFuelLbs = initialFuelGal * DIESEL_DENSITY_LBS_PER_GAL;
+  const initialGvwLbs = Math.round(baseSteer + baseDrive + baseTrailer + initialFuelLbs + cargoWeight);
+
   // Split transit into 4 simulation waypoint segments (25%, 50%, 75%, 100%)
   const segmentCount = 4;
   const segMiles = miles / segmentCount;
@@ -163,11 +170,6 @@ export function simulateRouteCompliance(input: RouteComplianceInput): {
     // Kingpin sits slightly ahead of drive tandem: ~90% to drive, ~10% to steer
     const cargoDriveLbs = cargoToKingpin * 0.90;
     const cargoSteerLbs = cargoToKingpin * 0.10;
-
-    // Fixed base tares
-    const baseSteer = 10000;
-    const baseDrive = 7000;
-    const baseTrailer = trailerTare;
 
     const steerAxleLbs = Math.round(baseSteer + fuelSteerLbs + cargoSteerLbs);
     const driveAxleLbs = Math.round(baseDrive + fuelDriveLbs + cargoDriveLbs);
@@ -221,7 +223,6 @@ export function simulateRouteCompliance(input: RouteComplianceInput): {
     });
   }
 
-  const initialFuelLbs = initialFuelGal * DIESEL_DENSITY_LBS_PER_GAL;
   const finalFuelLbs = currentFuelGal * DIESEL_DENSITY_LBS_PER_GAL;
   const fuelBurnedGal = initialFuelGal - currentFuelGal;
 
@@ -229,7 +230,7 @@ export function simulateRouteCompliance(input: RouteComplianceInput): {
     legs,
     totalFuelBurnedGallons: Math.round(fuelBurnedGal * 10) / 10,
     fuelWeightBurnedLbs: Math.round(initialFuelLbs - finalFuelLbs),
-    initialGvwLbs: legs[0]?.totalGvwLbs ?? 0,
+    initialGvwLbs,
     finalGvwLbs: legs[legs.length - 1]?.totalGvwLbs ?? 0,
     allWeighStationsCompliant: totalViolations === 0,
     violationsCount: totalViolations,
