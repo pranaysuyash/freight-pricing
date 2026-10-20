@@ -1,0 +1,180 @@
+:root {
+  --bg: #f8fafc;
+  --bg-card: #ffffff;
+  --line: #e2e8f0;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --accent-light: #eff6ff;
+  --ok: #16a34a;
+  --ok-bg: #f0fdf4;
+  --warn: #d97706;
+  --warn-bg: #fffbeb;
+  --err: #dc2626;
+  --err-bg: #fef2f2;
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  padding: 24px 16px;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+header.head {
+  margin-bottom: 24px;
+}
+.eyebrow {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--accent);
+}
+h1 { font-size: 24px; font-weight: 800; color: var(--ink); }
+p.sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+.grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .grid-layout { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.panel-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.panel-h b { font-size: 15px; color: var(--ink); }
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+label.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+input, select {
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--ink);
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.rates-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.rate-card {
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #ffffff;
+}
+.rate-card.primary {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+.rate-card.primary .lbl { color: #94a3b8; }
+.rate-card.primary .val { color: #ffffff; }
+.rate-card.primary .sub-val { color: #38bdf8; }
+
+.rate-card .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.rate-card .val { font-size: 26px; font-weight: 900; line-height: 1.1; font-family: ui-monospace, SFMono-Regular, monospace; }
+.rate-card .sub-val { font-size: 12.5px; font-weight: 600; margin-top: 4px; color: var(--accent); }
+
+.waterfall-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 10px;
+}
+.waterfall-table th, .waterfall-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.waterfall-table th { background: #f8fafc; color: var(--muted); font-size: 11.5px; text-transform: uppercase; }
+.waterfall-table tr.profit { font-weight: 700; color: var(--ok); background: var(--ok-bg); }
+
+.signals {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.signals li {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-light);
+}
+.signals li.warn {
+  border-left-color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.btn {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+.btn:hover { opacity: 0.92; }
