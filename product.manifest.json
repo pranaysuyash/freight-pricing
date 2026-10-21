@@ -1,0 +1,27 @@
+{
+  "$schema": "https://trucking.platform.io/schemas/subproduct-manifest-v1.json",
+  "id": "product-02-freight-pricing",
+  "name": "Freight Pricing & Tactical Dispatch HUD",
+  "shortName": "Freight Pricing",
+  "code": "P02",
+  "version": "1.0.0",
+  "port": 5174,
+  "icon": "💰",
+  "description": "Carrier cost waterfall, EIA diesel index pegging, 3D digital twins, and broker rate confirmations",
+  "category": "pricing",
+  "entitlementKey": "freight_pricing",
+  "routes": {
+    "dev": "http://localhost:5174",
+    "cloud": "https://freightpricing.pages.dev"
+  },
+  "bridges": {
+    "consumes": [
+      { "from": "product-01-cargo-fit", "protocol": "OLLP-v1", "action": "ingest_load_quote" },
+      { "from": "product-04-asset-studio", "protocol": "OLAS-v1", "action": "ingest_vehicle_specs" },
+      { "from": "product-05-fleet-telematics", "protocol": "TELEMATICS-v1", "action": "ingest_actual_fuel" }
+    ],
+    "produces": [
+      { "to": "product-03-hos-planner", "protocol": "OLRI-v1", "action": "dispatch_corridor" }
+    ]
+  }
+}
