@@ -52,10 +52,10 @@ export function TacticalHud({ quote, currentDiesel, pegBase }: TacticalHudProps)
 
               {/* Center text */}
               <text x="80" y="78" textAnchor="middle" fill="#f8fafc" fontSize="15" fontFamily="monospace" fontWeight="bold">
-                {(or * 100).toFixed(0)}%
+                {(or * 100).toFixed(0)}% OR
               </text>
-              <text x="80" y="93" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="600">
-                {or <= 0.90 ? 'HEALTHY MARGIN' : or <= 0.98 ? 'SLIM MARGIN' : 'DEFICIT'}
+              <text x="80" y="93" textAnchor="middle" fill={or <= 0.90 ? '#34d399' : or <= 0.98 ? '#fbbf24' : '#ef4444'} fontSize="8.5" fontWeight="700">
+                +{(100 - or * 100).toFixed(1)}% NET MARGIN
               </text>
             </svg>
           </div>
