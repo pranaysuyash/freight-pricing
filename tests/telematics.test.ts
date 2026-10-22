@@ -48,8 +48,9 @@ describe('Cold-Chain Telematics & Shock Impact Simulator', () => {
   it('records electronic bolt seal tampering along transit corridor', () => {
     const report = simulateTelematics(sampleWaypoints, 'pharma_cold', false, 300);
 
-    expect(report.sealIntegrity).toBe('SECURITY_BREACH');
+    expect(report.sealIntegrity).toBe('SIMULATED_BREACH');
     expect(report.overallStatus).toBe('REJECTED');
+    expect(report.dataProvenance).toBe('SIMULATED');
     const tamperedReadings = report.readings.filter(r => r.sealStatus === 'tampered');
     expect(tamperedReadings.length).toBeGreaterThan(0);
     expect(tamperedReadings[0].mileMarker).toBeGreaterThanOrEqual(300);

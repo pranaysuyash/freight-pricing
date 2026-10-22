@@ -107,6 +107,15 @@ describe('Product 02 — Freight Pricing & Dynamic Fuel Surcharge Engine', () =>
     expect(quote.pricingSignals.some((s) => s.includes('Breakeven rate floor'))).toBe(true);
   });
 
+  it('keeps the target margin invariant when accessorials are added (pass-through, not margin-bearing)', () => {
+    const none = generateRateQuote(sampleLane, sampleProfile, { ...sampleAccessorials, detentionHours: 0, layoverDays: 0, lumperFee: 0, extraStopsCount: 0, isHazmat: false, requiresTarp: false, reeferContinuousTempControl: false }, { targetOperatingRatio: 0.9 });
+    const withAcc = generateRateQuote(sampleLane, sampleProfile, { ...sampleAccessorials, detentionHours: 4, lumperFee: 300 }, { targetOperatingRatio: 0.9 });
+    expect(none.targetMarginPct).toBeCloseTo(10, 0);
+    expect(withAcc.targetMarginPct).toBeCloseTo(10, 0);
+    expect(withAcc.projectedMarginPct).toBeLessThan(withAcc.targetMarginPct); // all-in % is diluted
+    expect(withAcc.marginBearingRevenue).toBeCloseTo(withAcc.recommendedTotalRate - withAcc.totalAccessorials, 1);
+  });
+
   it('triggers pricing signal warnings for excessive deadhead', () => {
     const highDeadheadLane: LaneInput = {
       ...sampleLane,

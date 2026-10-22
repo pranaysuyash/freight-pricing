@@ -125,6 +125,10 @@ export function ColdChainTelematicsPanel({
         </label>
       </div>
 
+      <div role="note" style={{ margin: '8px 0', padding: '8px 12px', border: '1px solid #b45309', background: '#451a03', color: '#fde68a', borderRadius: 6, fontSize: 12 }}>
+        <b>Simulated sensor stream — no physical datalogger or seal reader connected.</b> Temperature, shock and seal values are synthesized for scenario planning and are not observed telemetry or evidence of cargo condition.
+      </div>
+
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, margin: '16px 0' }}>
         <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 12 }}>
@@ -158,9 +162,9 @@ export function ColdChainTelematicsPanel({
         </div>
 
         <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase' }}>ISO 17712 Bolt Seal</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: report.sealIntegrity === 'CERTIFIED_INTACT' ? '#22c55e' : '#ef4444', marginTop: 8 }}>
-            {report.sealIntegrity === 'CERTIFIED_INTACT' ? '✓ CERTIFIED INTACT' : '⚠️ BREACH DETECTED'}
+          <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase' }}>Bolt Seal (simulated)</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: report.sealIntegrity === 'SIMULATED_NORMAL' ? '#22c55e' : '#ef4444', marginTop: 8 }}>
+            {report.sealIntegrity === 'SIMULATED_NORMAL' ? 'SIMULATED: seal normal' : '⚠️ SIMULATED: breach scenario'}
           </div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
             Status: {report.overallStatus}

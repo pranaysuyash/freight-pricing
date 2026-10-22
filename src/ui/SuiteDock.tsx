@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 export type ProductId =
+  | 'command-center-portal'
   | 'product-01-cargo-fit'
   | 'product-02-freight-pricing'
   | 'product-03-hos-planner'
@@ -109,6 +110,22 @@ export const CANONICAL_PRODUCTS: SubproductManifest[] = [
       description: 'Real-time J1939 telemetry, Reefer excursions, live corridor tracking, and instant cross-product bridges.',
     },
   },
+  {
+    id: 'command-center-portal',
+    name: 'Unified Freight Command Center',
+    shortName: 'Command Center',
+    code: 'P00',
+    port: 5170,
+    icon: '🕹️',
+    description: 'Top-level freight lifecycle stepper bringing all 5 subproducts under a unified single pane of glass.',
+    category: 'Orchestration',
+    routes: { dev: 'http://localhost:5170', cloud: 'https://trucking-command-center.pages.dev' },
+    pricingTier: {
+      tierName: 'Enterprise Command Seat',
+      monthlyPriceUsd: 499,
+      description: 'Complete 5-stage lifecycle stepper: Asset Studio → 3D Packing → Pricing → HOS → Live Telematics.',
+    },
+  },
 ];
 
 export function resolveProductUrl(manifest: SubproductManifest): string {
@@ -119,48 +136,70 @@ export function resolveProductUrl(manifest: SubproductManifest): string {
   return manifest.routes.dev;
 }
 
+const STORAGE_KEY = 'trucking_tenant_profile';
+
+export interface TenantProfile {
+  tenantId: string;
+  tenantName: string;
+  mode: 'standalone' | 'suite';
+  licensedProducts: string[];
+  userRole: 'owner_operator' | 'dispatcher' | 'safety_officer' | 'fleet_manager' | 'enterprise_admin';
+  userName: string;
+}
+
+export function getTenantProfile(): TenantProfile {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+  }
+  return {
+    tenantId: 'tenant_apex_freight',
+    tenantName: 'Apex Logistics & Freight',
+    mode: 'suite',
+    licensedProducts: [
+      'product-01-cargo-fit',
+      'product-02-freight-pricing',
+      'product-04-asset-studio',
+    ],
+    userRole: 'fleet_manager',
+    userName: 'Alex Chen',
+  };
+}
+
+export function isProductLicensed(productId: string): boolean {
+  const profile = getTenantProfile();
+  return profile.licensedProducts.includes(productId);
+}
+
 export interface SuiteDockProps {
   currentProductId: ProductId;
 }
 
-const STORAGE_KEY = 'trucking_tenant_profile';
-
 export const SuiteDock: React.FC<SuiteDockProps> = ({ currentProductId }) => {
-  const [profile, setProfile] = useState<{
-    tenantId: string;
-    tenantName: string;
-    mode: 'standalone' | 'suite';
-    licensedProducts: string[];
-    userRole: string;
-  }>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) return JSON.parse(stored);
-      } catch {}
-    }
-    return {
-      tenantId: 'tenant_apex_freight',
-      tenantName: 'Apex Logistics & Freight',
-      mode: 'suite',
-      licensedProducts: [
-        'product-01-cargo-fit',
-        'product-02-freight-pricing',
-        'product-04-asset-studio',
-      ],
-      userRole: 'fleet_manager',
-    };
-  });
-
+  const [profile, setProfile] = useState<TenantProfile>(getTenantProfile);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [upsellProduct, setUpsellProduct] = useState<SubproductManifest | null>(null);
   const [trialToast, setTrialToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      window.dispatchEvent(new CustomEvent('trucking_profile_changed', { detail: profile }));
     }
   }, [profile]);
+
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try { setProfile(JSON.parse(e.newValue)); } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const currentProduct = CANONICAL_PRODUCTS.find((p) => p.id === currentProductId) || {
     id: currentProductId,
@@ -200,6 +239,63 @@ export const SuiteDock: React.FC<SuiteDockProps> = ({ currentProductId }) => {
     setTrialToast(`🎉 14-Day Free Trial Activated for ${p.name}!`);
     setUpsellProduct(null);
     setTimeout(() => setTrialToast(null), 4000);
+  };
+
+  // Plan Preset Switchers
+  const applyPreset = (preset: 'solo' | 'broker' | 'safety' | 'enterprise') => {
+    switch (preset) {
+      case 'solo':
+        setProfile((prev) => ({
+          ...prev,
+          tenantName: 'Miller Heavy Haul (Owner-Operator)',
+          mode: 'standalone',
+          userRole: 'owner_operator',
+          licensedProducts: [currentProductId],
+        }));
+        setTrialToast(`Switched to Solo Owner-Operator Plan (Standalone ${currentProduct.shortName})`);
+        break;
+      case 'broker':
+        setProfile((prev) => ({
+          ...prev,
+          tenantName: 'Keystone Logistics Brokerage',
+          mode: 'suite',
+          userRole: 'dispatcher',
+          licensedProducts: ['product-01-cargo-fit', 'product-02-freight-pricing'],
+        }));
+        setTrialToast(`Switched to Brokerage & Dispatcher Bundle (P01 + P02)`);
+        break;
+      case 'safety':
+        setProfile((prev) => ({
+          ...prev,
+          tenantName: 'Interstate Carrier Safety Ops',
+          mode: 'suite',
+          userRole: 'safety_officer',
+          licensedProducts: ['product-03-hos-planner', 'product-05-fleet-telematics'],
+        }));
+        setTrialToast(`Switched to Compliance & Telematics Bundle (P03 + P05)`);
+        break;
+      case 'enterprise':
+        setProfile((prev) => ({
+          ...prev,
+          tenantName: 'Apex Global Logistics & Fleet',
+          mode: 'suite',
+          userRole: 'enterprise_admin',
+          licensedProducts: CANONICAL_PRODUCTS.map((p) => p.id),
+        }));
+        setTrialToast(`Switched to Full Enterprise Command Suite (All 6 Tools)`);
+        break;
+    }
+    setTimeout(() => setTrialToast(null), 3500);
+  };
+
+  const toggleProductLicense = (pId: string) => {
+    setProfile((prev) => {
+      const exists = prev.licensedProducts.includes(pId);
+      const nextList = exists
+        ? prev.licensedProducts.filter((id) => id !== pId)
+        : [...prev.licensedProducts, pId];
+      return { ...prev, licensedProducts: nextList };
+    });
   };
 
   return (
@@ -260,9 +356,32 @@ export const SuiteDock: React.FC<SuiteDockProps> = ({ currentProductId }) => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ color: '#94a3b8', fontSize: '11px', fontFamily: 'monospace' }}>
-            🏢 {profile.mode === 'suite' ? profile.tenantName : 'Single Client Mode'}
-          </span>
+          {/* Tenant Profile / Plan Badge */}
+          <button
+            onClick={() => setIsPlanModalOpen(true)}
+            style={{
+              background: 'transparent',
+              border: '1px dashed #334155',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              color: '#94a3b8',
+              fontSize: '11px',
+              fontFamily: 'monospace',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            title="Click to manage subscription plan & test client personas"
+          >
+            <span>🏢</span>
+            <span>{profile.tenantName}</span>
+            <span style={{ background: '#1e293b', color: '#38bdf8', fontSize: '9px', padding: '1px 4px', borderRadius: '3px' }}>
+              {profile.licensedProducts.length} Licensed
+            </span>
+          </button>
+
+          {/* Quick Mode Toggle */}
           <button
             onClick={toggleMode}
             style={{
@@ -305,7 +424,7 @@ export const SuiteDock: React.FC<SuiteDockProps> = ({ currentProductId }) => {
               border: '1px solid #334155',
               borderRadius: '12px',
               width: '90%',
-              maxWidth: '900px',
+              maxWidth: '920px',
               padding: '24px',
               boxShadow: '0 25px 50px rgba(0,0,0,0.9), 0 0 25px rgba(56, 189, 248, 0.2)',
             }}
@@ -315,8 +434,8 @@ export const SuiteDock: React.FC<SuiteDockProps> = ({ currentProductId }) => {
                 <h4 style={{ color: '#fff', fontSize: '16px', fontWeight: 800 }}>TRUCKING PLATFORM SUITE</h4>
                 <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>
                   {profile.mode === 'suite'
-                    ? 'Navigate licensed commercial logistics tools or test cross-product workflows.'
-                    : 'Independent single-product license active. Upgrade to unlock the full fleet suite.'}
+                    ? `Unified access active for ${profile.tenantName}. Navigate licensed tools below.`
+                    : `Operating in Single Client mode. Only ${currentProduct.shortName} is active for this client.`}
                 </p>
               </div>
               <button
@@ -377,6 +496,172 @@ export const SuiteDock: React.FC<SuiteDockProps> = ({ currentProductId }) => {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Client Account & Subscription Plan Modal */}
+      {isPlanModalOpen && (
+        <div
+          onClick={() => setIsPlanModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 10001,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#0f172a',
+              border: '1px solid #38bdf8',
+              borderRadius: '12px',
+              width: '90%',
+              maxWidth: '560px',
+              padding: '24px',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.9), 0 0 30px rgba(56, 189, 248, 0.2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <span style={{ fontSize: '10px', fontWeight: 900, color: '#38bdf8', letterSpacing: '0.1em' }}>
+                  MULTI-TENANT CLIENT ENTITLEMENT SIMULATOR
+                </span>
+                <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 800, marginTop: '2px' }}>
+                  Manage Subscription & Client Tier
+                </h3>
+              </div>
+              <button onClick={() => setIsPlanModalOpen(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '16px', lineHeight: 1.5 }}>
+              Test how this application behaves when a client signs up for only 1 tool vs. a customized bundle vs. the full enterprise suite.
+            </p>
+
+            {/* Quick Persona Presets */}
+            <div style={{ marginBottom: '20px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>
+                1-CLICK CLIENT PERSONA PRESETS:
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                <button
+                  onClick={() => applyPreset('solo')}
+                  style={{
+                    background: '#131d31',
+                    border: '1px solid #1e293b',
+                    color: '#f8fafc',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  <strong style={{ display: 'block', color: '#f59e0b' }}>🚛 Solo Owner-Operator</strong>
+                  <span style={{ fontSize: '10px', color: '#94a3b8' }}>Only 1 product licensed (Standalone)</span>
+                </button>
+
+                <button
+                  onClick={() => applyPreset('broker')}
+                  style={{
+                    background: '#131d31',
+                    border: '1px solid #1e293b',
+                    color: '#f8fafc',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  <strong style={{ display: 'block', color: '#10b981' }}>📊 Broker & Dispatcher</strong>
+                  <span style={{ fontSize: '10px', color: '#94a3b8' }}>P01 Cargo Fit + P02 Pricing</span>
+                </button>
+
+                <button
+                  onClick={() => applyPreset('safety')}
+                  style={{
+                    background: '#131d31',
+                    border: '1px solid #1e293b',
+                    color: '#f8fafc',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  <strong style={{ display: 'block', color: '#818cf8' }}>🛡️ Safety & Telematics</strong>
+                  <span style={{ fontSize: '10px', color: '#94a3b8' }}>P03 HOS Planner + P05 Telematics</span>
+                </button>
+
+                <button
+                  onClick={() => applyPreset('enterprise')}
+                  style={{
+                    background: '#131d31',
+                    border: '1px solid #1e293b',
+                    color: '#f8fafc',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  <strong style={{ display: 'block', color: '#38bdf8' }}>🌐 Enterprise Fleet Suite</strong>
+                  <span style={{ fontSize: '10px', color: '#94a3b8' }}>All 6 platform products unlocked</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Custom Matrix Checkboxes */}
+            <div style={{ marginBottom: '20px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>
+                CUSTOM SUBSCRIBED MODULES:
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: '#090d16', padding: '10px', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                {CANONICAL_PRODUCTS.map((prod) => {
+                  const checked = profile.licensedProducts.includes(prod.id);
+                  return (
+                    <label key={prod.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', cursor: 'pointer', padding: '4px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleProductLicense(prod.id)}
+                        />
+                        <span>{prod.icon} {prod.name}</span>
+                      </span>
+                      <span style={{ color: checked ? '#10b981' : '#64748b', fontSize: '11px', fontWeight: 600 }}>
+                        {checked ? 'Licensed' : 'Locked'}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                onClick={() => setIsPlanModalOpen(false)}
+                style={{
+                  background: '#38bdf8',
+                  color: '#000',
+                  fontWeight: 800,
+                  border: 'none',
+                  padding: '8px 18px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                Save & Apply Plan
+              </button>
             </div>
           </div>
         </div>

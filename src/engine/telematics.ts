@@ -87,7 +87,10 @@ export interface TelematicsSummary {
   excursionHours: number;
   peakImpactG: number;
   shockAlertCount: number;
-  sealIntegrity: 'CERTIFIED_INTACT' | 'SECURITY_BREACH' | 'VERIFIED_DELIVERED';
+  /** Simulated scenario output only — no physical datalogger or seal reader is connected. */
+  sealIntegrity: 'SIMULATED_NORMAL' | 'SIMULATED_BREACH';
+  /** Always 'SIMULATED': readings are synthesized, not observed. */
+  dataProvenance: 'SIMULATED';
   overallStatus: 'PASS' | 'WARNING' | 'REJECTED';
   readings: WaypointTelemetryReading[];
 }
@@ -209,9 +212,9 @@ export function simulateTelematics(
   const totalHours = waypoints.length > 0 ? waypoints[waypoints.length - 1].elapsedHours : 0;
   const excursionHours = Number(((excursionCount / Math.max(1, readings.length)) * totalHours).toFixed(1));
 
-  let sealIntegrity: 'CERTIFIED_INTACT' | 'SECURITY_BREACH' | 'VERIFIED_DELIVERED' = 'CERTIFIED_INTACT';
+  let sealIntegrity: 'SIMULATED_NORMAL' | 'SIMULATED_BREACH' = 'SIMULATED_NORMAL';
   if (sealBreached) {
-    sealIntegrity = 'SECURITY_BREACH';
+    sealIntegrity = 'SIMULATED_BREACH';
   }
 
   let overallStatus: 'PASS' | 'WARNING' | 'REJECTED' = 'PASS';
@@ -231,6 +234,7 @@ export function simulateTelematics(
     peakImpactG,
     shockAlertCount,
     sealIntegrity,
+    dataProvenance: 'SIMULATED',
     overallStatus,
     readings,
   };

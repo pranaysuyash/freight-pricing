@@ -58,6 +58,10 @@ export function generateRateQuote(
   const recommendedTotalRate = Math.round((totalOperatingCost / targetOR + acc.totalAmount) * 100) / 100;
   const projectedProfit = Math.round((recommendedTotalRate - totalOperatingCost - acc.totalAmount) * 100) / 100;
   const projectedMarginPct = Math.round((projectedProfit / recommendedTotalRate) * 1000) / 10;
+  // Accessorials are priced as pass-through (no margin applied), so the margin the target OR
+  // implies is realised on the remaining revenue, not on the all-in total.
+  const marginBearingRevenue = Math.round((recommendedTotalRate - acc.totalAmount) * 100) / 100;
+  const targetMarginPct = Math.round((projectedProfit / marginBearingRevenue) * 1000) / 10;
 
   // Recommended Linehaul rate (Total minus separate FSC and Accessorial line-items)
   const recommendedLinehaulRate = Math.round((recommendedTotalRate - fuel.totalFscBilled - acc.totalAmount) * 100) / 100;
@@ -162,6 +166,8 @@ export function generateRateQuote(
     allInRatePerMile,
     projectedProfit,
     projectedMarginPct,
+    marginBearingRevenue,
+    targetMarginPct,
 
     costWaterfall: waterfall,
     pricingSignals,

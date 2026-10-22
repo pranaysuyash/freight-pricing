@@ -4,6 +4,9 @@ import { Realtime3DVehicle } from './Realtime3DVehicle';
 import { TacticalHud } from './TacticalHud';
 import { ColdChainTelematicsPanel } from './ColdChainTelematicsPanel';
 import { SuiteDock } from './SuiteDock';
+import { RateConfirmationModal } from './RateConfirmationModal';
+import { parseInboundBridge } from '../engine/bridge';
+import { EIA_DIESEL_BENCHMARK, describeBenchmark } from '../engine/dieselBenchmark';
 import type {
   CarrierCostProfile,
   LaneInput,
@@ -28,21 +31,25 @@ const DEFAULT_PROFILE: CarrierCostProfile = {
 
   avgMpgLoaded: 6.5,
   avgMpgEmpty: 7.5,
-  currentDieselPricePerGallon: 3.85,
+  // Default is the dated EIA national benchmark (see dieselBenchmark.ts); operators should override with their fuel index.
+  currentDieselPricePerGallon: EIA_DIESEL_BENCHMARK.pricePerGallon,
   fscPegBasePricePerGallon: 1.20,
 };
 
 export function App() {
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const isFromCargoFit = params.get('source') === 'cargofit';
+  const [bridge] = useState(() => parseInboundBridge(params));
+  const [cargoWeightLbs] = useState<number | undefined>(bridge.cargoWeightLbs);
 
   const [importedBanner, setImportedBanner] = useState<string | null>(() => {
-    if (!isFromCargoFit) return null;
+    const rejectedNote = bridge.rejected.length ? ` ⚠ Ignored invalid handoff value(s): ${bridge.rejected.join('; ')}.` : '';
+    if (!isFromCargoFit) return rejectedNote ? rejectedNote.trim() : null;
     const scenario = params.get('scenario') || 'Cargo Fit Plan';
     const eq = params.get('equipmentName') || (params.get('equipment') || 'dry_van').replace('_', ' ').toUpperCase();
     const kg = params.get('loadedKg') || '0';
     const units = params.get('placedUnits') || '0';
-    return `✓ Load Plan Imported from Product 01 (${scenario}): ${eq} · ${Number(kg).toLocaleString()} kg · ${units} piece(s)`;
+    return `✓ Load Plan Imported from Product 01 (${scenario}): ${eq} · ${Number(kg).toLocaleString()} kg · ${units} piece(s)${bridge.loadedMiles ? ` · ${bridge.loadedMiles} loaded mi` : ' · distance not supplied (using editable default)'}${rejectedNote}`;
   });
 
   const [lane, setLane] = useState<LaneInput>({
@@ -50,9 +57,9 @@ export function App() {
     originState: 'IL',
     destCity: 'Dallas',
     destState: 'TX',
-    loadedMiles: 920,
-    deadheadMiles: 85,
-    equipmentCategory: (params.get('equipment') as EquipmentCategory) || 'dry_van',
+    loadedMiles: bridge.loadedMiles ?? 920,
+    deadheadMiles: bridge.deadheadMiles ?? 85,
+    equipmentCategory: bridge.equipmentCategory ?? 'dry_van',
   });
 
   const [profile, setProfile] = useState<CarrierCostProfile>(DEFAULT_PROFILE);
@@ -61,10 +68,10 @@ export function App() {
     detentionHours: 0,
     layoverDays: 0,
     lumperFee: 0,
-    extraStopsCount: Number(params.get('extraStops') || 0),
-    isHazmat: params.get('hazmat') === '1',
+    extraStopsCount: bridge.extraStops ?? 0,
+    isHazmat: bridge.hazmat ?? false,
     requiresTarp: false,
-    reeferContinuousTempControl: params.get('reefer') === '1',
+    reeferContinuousTempControl: bridge.reefer ?? false,
   });
 
   const [operatingRatio, setOperatingRatio] = useState<number>(0.90);
@@ -78,24 +85,25 @@ export function App() {
     const text = `
 FREIGHT RATE CONFIRMATION / ESTIMATE
 Lane: ${lane.originCity}, ${lane.originState} → ${lane.destCity}, ${lane.destState}
-Equipment: ${lane.equipmentCategory.replace('_', ' ').toUpperCase()}
+Equipment: ${lane.equipmentCategory.replace('_', ' ').toUpperCase()}${cargoWeightLbs ? `\nCargo Weight (from Cargo Fit): ${cargoWeightLbs.toLocaleString()} lbs` : ''}
 Loaded Miles: ${lane.loadedMiles} mi | Deadhead: ${lane.deadheadMiles} mi (Total: ${quote.totalMiles} mi)
 ------------------------------------------------
 Linehaul Rate: $${quote.recommendedLinehaulRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-Fuel Surcharge (FSC): $${quote.totalFuelSurcharge.toLocaleString(undefined, { minimumFractionDigits: 2 })} ($${quote.fuelSurchargePerMile.toFixed(3)}/mi @ $${profile.currentDieselPricePerGallon.toFixed(2)}/gal)
+Fuel Surcharge (FSC): $${quote.totalFuelSurcharge.toLocaleString(undefined, { minimumFractionDigits: 2 })} ($${quote.fuelSurchargePerMile.toFixed(3)}/mi @ $${profile.currentDieselPricePerGallon.toFixed(3)}/gal; ${profile.currentDieselPricePerGallon === EIA_DIESEL_BENCHMARK.pricePerGallon ? `EIA national avg observed ${EIA_DIESEL_BENCHMARK.observedOn}` : 'operator-entered fuel index'})
 Accessorials: $${quote.totalAccessorials.toLocaleString(undefined, { minimumFractionDigits: 2 })}
 ------------------------------------------------
 TOTAL ALL-IN RATE: $${quote.recommendedTotalRate.toLocaleString(undefined, { minimumFractionDigits: 2 })}
 Rate Per Loaded Mile: $${quote.recommendedRatePerMile.toFixed(2)}/mi
 Breakeven Operating Floor: $${quote.breakevenRatePerMile.toFixed(2)}/mi
 ------------------------------------------------
-Generated by CargoFit Product 02 — Freight Pricing Engine
+ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product 02 — Freight Pricing Engine
 `.trim();
     navigator.clipboard.writeText(text);
     alert('Rate Confirmation copied to clipboard!');
   };
 
   const [showIso, setShowIso] = useState<boolean>(true);
+  const [isRateConfModalOpen, setIsRateConfModalOpen] = useState<boolean>(false);
 
   return (
     <main className="app">
@@ -113,33 +121,6 @@ Generated by CargoFit Product 02 — Freight Pricing Engine
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <a
-              href={typeof window !== 'undefined' && window.location.hostname.includes('pages.dev') ? 'https://cargofit.pages.dev' : 'http://localhost:5173/'}
-              target="_blank"
-              rel="noreferrer"
-              className="btn"
-              style={{ textDecoration: 'none', fontSize: 12, padding: '6px 12px' }}
-            >
-              📦 Product 01: Cargo Fit ↗
-            </a>
-            <a
-              href={typeof window !== 'undefined' && window.location.hostname.includes('pages.dev') ? 'https://hosdispatch.pages.dev' : 'http://localhost:5175/'}
-              target="_blank"
-              rel="noreferrer"
-              className="btn"
-              style={{ textDecoration: 'none', fontSize: 12, padding: '6px 12px' }}
-            >
-              ⏱️ Product 03: HOS & Dispatch ↗
-            </a>
-            <a
-              href="http://localhost:5176/"
-              target="_blank"
-              rel="noreferrer"
-              className="btn"
-              style={{ textDecoration: 'none', fontSize: 12, padding: '6px 12px', borderColor: '#38bdf8', color: '#38bdf8' }}
-            >
-              🚛 Product 04: Asset Studio ↗
-            </a>
             <button className="btn" onClick={() => setShowIso((s) => !s)}>
               {showIso ? '📐 Hide Spatial 3D HUD' : '🧊 Show Spatial 3D HUD'}
             </button>
@@ -301,6 +282,12 @@ Generated by CargoFit Product 02 — Freight Pricing Engine
                   onChange={(e) => setProfile({ ...profile, currentDieselPricePerGallon: Number(e.target.value) })}
                 />
               </label>
+              <div className="muted small" style={{ gridColumn: '1 / -1' }} role="note">
+                {profile.currentDieselPricePerGallon === EIA_DIESEL_BENCHMARK.pricePerGallon
+                  ? <>Benchmark: {describeBenchmark(EIA_DIESEL_BENCHMARK)}</>
+                  : <>Operator-entered price. EIA benchmark: {describeBenchmark(EIA_DIESEL_BENCHMARK)}{' '}
+                      <button type="button" className="btn sm" onClick={() => setProfile({ ...profile, currentDieselPricePerGallon: EIA_DIESEL_BENCHMARK.pricePerGallon })}>Reset to EIA benchmark</button></>}
+              </div>
               <label className="field">
                 Peg Base ($/gal)
                 <input
@@ -462,7 +449,7 @@ Generated by CargoFit Product 02 — Freight Pricing Engine
             <div className="rate-card">
               <div className="lbl">Carrier Net Profit</div>
               <div className="val" style={{ color: '#16a34a' }}>+${quote.projectedProfit.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-              <div className="sub-val" style={{ color: '#16a34a' }}>{quote.projectedMarginPct}% Net Margin</div>
+              <div className="sub-val" style={{ color: '#16a34a' }}>{quote.targetMarginPct}% margin on linehaul+fuel{quote.totalAccessorials > 0 ? ` · ${quote.projectedMarginPct}% of all-in incl. pass-through accessorials` : ''}</div>
             </div>
           </div>
 
@@ -470,7 +457,14 @@ Generated by CargoFit Product 02 — Freight Pricing Engine
           <section className="panel" aria-label="Cost Waterfall Breakdown">
             <div className="panel-h">
               <b>Cost Waterfall Breakdown (Per Loaded Trip)</b>
-              <button className="btn sm" onClick={copyConfirmation}>📋 Copy Confirmation</button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn sm primary" onClick={() => setIsRateConfModalOpen(true)}>
+                  📄 Official Rate Confirmation Agreement
+                </button>
+                <button className="btn sm" onClick={copyConfirmation}>
+                  📋 Copy Text
+                </button>
+              </div>
             </div>
             <table className="waterfall-table">
               <thead>
@@ -522,6 +516,14 @@ Generated by CargoFit Product 02 — Freight Pricing Engine
           </section>
         </div>
       </div>
+
+      <RateConfirmationModal
+        lane={lane}
+        quote={quote}
+        acc={acc}
+        isOpen={isRateConfModalOpen}
+        onClose={() => setIsRateConfModalOpen(false)}
+      />
     </main>
   );
 }

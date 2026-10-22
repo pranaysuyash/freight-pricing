@@ -62,7 +62,7 @@ export function TacticalHud({ quote, currentDiesel, pegBase }: TacticalHudProps)
           <div className="hud-foot-stat">
             <span>Net Profit Margin:</span>
             <b className="mono" style={{ color: quote.projectedMarginPct > 0 ? '#22c55e' : '#ef4444' }}>
-              {quote.projectedMarginPct}% (+${quote.projectedProfit.toLocaleString()})
+              {quote.targetMarginPct}% (+${quote.projectedProfit.toLocaleString()})
             </b>
           </div>
         </div>

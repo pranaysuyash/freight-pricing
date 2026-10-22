@@ -85,7 +85,12 @@ export interface RateQuote {
   recommendedRatePerMile: number; // Per loaded mile
   allInRatePerMile: number; // Across total (loaded + deadhead) miles
   projectedProfit: number;
+  /** Profit as % of ALL-IN revenue, including accessorials (which dilute the percentage). */
   projectedMarginPct: number;
+  /** Revenue that carries margin: all-in total minus accessorials (treated as pass-through at cost). */
+  marginBearingRevenue: number;
+  /** Profit as % of margin-bearing revenue; equals 100 × (1 − target operating ratio) regardless of accessorials. */
+  targetMarginPct: number;
 
   costWaterfall: CostWaterfallItem[];
   pricingSignals: string[];

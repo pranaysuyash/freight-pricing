@@ -2,7 +2,7 @@
 
 - Doctrine path: /Users/pranay/Projects/trucking/products/product-02-freight-pricing/OPERATING_DOCTRINE.md
 - SHA-256: e14bab7b1964d8b755c9e6c7f5b1c2b44e1d726033fa23aeaee6ce921e271a75
-- Generated: 2026-10-21T06:52:22Z
+- Generated: 2026-10-21T06:55:24Z
 - This is a generated review artifact, not an instruction source.
 
 ## SECTION_0
@@ -15,7 +15,7 @@
 
 - Label: Full doctrine integrated audit
 - Reviewed: True
-- Evidence: Full integrated doctrine audit confirming 12/12 vitest tests passing in tests/telematics.test.ts, zero typescript errors in src/engine/telematics.ts, verified cold chain simulation in src/ui/ColdChainTelematicsPanel.tsx, and successful Cloudflare Pages deployment.
+- Evidence: Full integrated doctrine audit: resolved audit P1 findings across 19 vitest tests passing in tests/pricing.test.ts, tests/telematics.test.ts, tests/bridge.test.ts, tests/routeCompliance.test.ts; added dated EIA national diesel benchmark with provenance and override in src/engine/dieselBenchmark.ts; relabeled synthetic sensors to SIMULATED_NORMAL with prominent simulation banner in src/ui/ColdChainTelematicsPanel.tsx; implemented validated inbound URL bridge parser in src/engine/bridge.ts; reconciled accessorial pass-throughs vs target margin invariant in src/engine/quote.ts; verified clean build and live deployment to Cloudflare Pages (freightpricing.pages.dev).
 
 ## SECTION_1
 
