@@ -559,7 +559,7 @@ export const Realtime3DVehicle: React.FC<Realtime3DVehicleProps> = ({
             onClick={snapIsometric}
             title="Snap camera to precise 35.264° / 45° CAD Isometric view"
           >
-            📐 Isometric Lock
+            Isometric Lock
           </button>
           <button
             type="button"
@@ -568,7 +568,7 @@ export const Realtime3DVehicle: React.FC<Realtime3DVehicleProps> = ({
             onClick={() => setAutoRotate(r => !r)}
             title="Toggle 360° continuous turntable rotation"
           >
-            🔄 {autoRotate ? 'Stop Orbit' : 'Turntable'}
+            {autoRotate ? 'Stop Orbit' : 'Turntable'}
           </button>
           <button
             type="button"
@@ -577,7 +577,7 @@ export const Realtime3DVehicle: React.FC<Realtime3DVehicleProps> = ({
             onClick={() => setWireframeMode(w => !w)}
             title="Toggle Tron-style wireframe vector mode"
           >
-            ⚡ {wireframeMode ? 'Solid Shading' : 'Wireframe'}
+            {wireframeMode ? 'Solid Shading' : 'Wireframe'}
           </button>
           <button
             type="button"
@@ -594,7 +594,7 @@ export const Realtime3DVehicle: React.FC<Realtime3DVehicleProps> = ({
             }}
             title="Toggle Night Cyber vs Daylight Studio environment"
           >
-            {nightMode ? '🌙 Cyber Night' : '☀️ Studio Light'}
+            {nightMode ? 'Cyber Night' : 'Studio Light'}
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8' }}>
             <span>Speed:</span>

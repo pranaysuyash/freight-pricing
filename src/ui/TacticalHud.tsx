@@ -103,7 +103,7 @@ export function TacticalHud({ quote, currentDiesel, pegBase }: TacticalHudProps)
               <b className="mono">${quote.breakevenRatePerMile.toFixed(2)}/mi</b>
               <span className="mono tiny">${quote.breakevenRateTotal.toLocaleString()} net cost</span>
             </div>
-            <div className="rate-arrow">➔</div>
+            <div className="rate-arrow">&rarr;</div>
             <div className="rate-spectrum-item target">
               <span className="mono small">RECOMMENDED BID</span>
               <b className="mono" style={{ color: '#38bdf8' }}>${quote.recommendedRatePerMile.toFixed(2)}/mi</b>

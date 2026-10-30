@@ -73,7 +73,7 @@ export function ColdChainTelematicsPanel({
     <div className="panel" style={{ marginTop: 20 }}>
       <div className="panel-h" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <b>❄️ Cold-Chain Telematics &amp; 3-Axis Shock Sensor Array</b>
+          <b>Cold-Chain Telematics &amp; 3-Axis Shock Sensor Array</b>
           <span style={{ marginLeft: 10, fontSize: 12, color: '#94a3b8' }}>
             FSMA 21 CFR § 1.908 &amp; ASTM D4169 / ISTA 3A Digital Twin
           </span>
@@ -164,7 +164,7 @@ export function ColdChainTelematicsPanel({
         <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 12 }}>
           <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase' }}>Bolt Seal (simulated)</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: report.sealIntegrity === 'SIMULATED_NORMAL' ? '#22c55e' : '#ef4444', marginTop: 8 }}>
-            {report.sealIntegrity === 'SIMULATED_NORMAL' ? 'SIMULATED: seal normal' : '⚠️ SIMULATED: breach scenario'}
+            {report.sealIntegrity === 'SIMULATED_NORMAL' ? 'SIMULATED: seal normal' : 'SIMULATED: breach scenario'}
           </div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
             Status: {report.overallStatus}
@@ -194,7 +194,7 @@ export function ColdChainTelematicsPanel({
                 <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{r.ambientTempC}°C</td>
                 <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>{r.returnAirTempC}°C</td>
                 <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontWeight: 600, color: r.isTempExcursion ? '#ef4444' : '#22c55e' }}>
-                  {r.coreCargoTempC}°C {r.isTempExcursion && '⚠️ EXCURSION'}
+                  {r.coreCargoTempC}°C {r.isTempExcursion && 'EXCURSION'}
                 </td>
                 <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>
                   <span style={{ color: r.peakG > 2.0 ? '#f59e0b' : '#cbd5e1' }}>

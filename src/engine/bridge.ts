@@ -16,6 +16,7 @@ export interface InboundBridge {
   extraStops?: number;
   hazmat?: boolean;
   reefer?: boolean;
+  actualMpg?: number;
   /** Parameters present in the URL but rejected, with reasons. */
   rejected: string[];
 }
@@ -45,6 +46,7 @@ export function parseInboundBridge(params: URLSearchParams): InboundBridge {
 
   out.loadedMiles = positive(params.get('loadedMiles') ?? params.get('miles'), 'loadedMiles', rejected);
   out.deadheadMiles = positive(params.get('deadheadMiles'), 'deadheadMiles', rejected, true);
+  out.actualMpg = positive(params.get('actualMpg') ?? params.get('mpg'), 'actualMpg', rejected);
 
   // Weight: accept lbs directly, else convert kg. Explicit lbs wins.
   const lbs = positive(params.get('cargoWeight') ?? params.get('loadedLbs'), 'cargoWeight', rejected);

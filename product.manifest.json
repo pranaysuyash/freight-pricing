@@ -6,7 +6,7 @@
   "code": "P02",
   "version": "1.0.0",
   "port": 5174,
-  "icon": "💰",
+  "icon": "\ud83d\udcb0",
   "description": "Carrier cost waterfall, EIA diesel index pegging, 3D digital twins, and broker rate confirmations",
   "category": "pricing",
   "entitlementKey": "freight_pricing",
@@ -16,12 +16,33 @@
   },
   "bridges": {
     "consumes": [
-      { "from": "product-01-cargo-fit", "protocol": "OLLP-v1", "action": "ingest_load_quote" },
-      { "from": "product-04-asset-studio", "protocol": "OLAS-v1", "action": "ingest_vehicle_specs" },
-      { "from": "product-05-fleet-telematics", "protocol": "TELEMATICS-v1", "action": "ingest_actual_fuel" }
+      {
+        "from": "product-01-cargo-fit",
+        "protocol": "OLLP-v1",
+        "action": "ingest_load_quote"
+      },
+      {
+        "from": "product-04-asset-studio",
+        "protocol": "OLAS-v1",
+        "action": "ingest_vehicle_specs"
+      },
+      {
+        "from": "product-05-fleet-telematics",
+        "protocol": "TELEMATICS-v1",
+        "action": "ingest_actual_fuel"
+      }
     ],
     "produces": [
-      { "to": "product-03-hos-planner", "protocol": "OLRI-v1", "action": "dispatch_corridor" }
+      {
+        "to": "product-03-hos-planner",
+        "protocol": "OLRI-v1",
+        "action": "dispatch_corridor"
+      }
     ]
+  },
+  "pricingTier": {
+    "tierName": "Dispatcher HUD",
+    "monthlyPriceUsd": 199,
+    "description": "Carrier cost waterfall, EIA diesel index pegging, 3D digital twins, and broker rate confirmations"
   }
 }

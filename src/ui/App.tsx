@@ -1,12 +1,23 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react';
 import { generateRateQuote } from '../engine/quote';
-import { Realtime3DVehicle } from './Realtime3DVehicle';
 import { TacticalHud } from './TacticalHud';
 import { ColdChainTelematicsPanel } from './ColdChainTelematicsPanel';
 import { SuiteDock } from './SuiteDock';
+import { IconBox3d, IconX } from './icons';
 import { RateConfirmationModal } from './RateConfirmationModal';
+import { BrokerMarginCard } from './BrokerMarginCard';
+import { AccessorialRateCardModal } from './AccessorialRateCardModal';
+import { RouteComplianceModal } from './RouteComplianceModal';
+import { FactoringQuickPayModal } from './FactoringQuickPayModal';
+import { TriangulationModal } from './TriangulationModal';
+import { platformBus } from '../engine/platformBus';
 import { parseInboundBridge } from '../engine/bridge';
 import { EIA_DIESEL_BENCHMARK, describeBenchmark } from '../engine/dieselBenchmark';
+import { useShipmentContext } from '../suite/useShipmentContext';
+import { inputsForShipment, resultForQuote } from '../engine/shipmentAdapter';
+import { useShipmentSession } from '../suite/ShipmentSession';
+import { StructuredValue } from '../suite/ShipmentInspector';
+import type { Shipment } from '../suite/types';
 import type {
   CarrierCostProfile,
   LaneInput,
@@ -35,34 +46,59 @@ const DEFAULT_PROFILE: CarrierCostProfile = {
   currentDieselPricePerGallon: EIA_DIESEL_BENCHMARK.pricePerGallon,
   fscPegBasePricePerGallon: 1.20,
 };
+const Realtime3DVehicle = lazy(()=>import('./Realtime3DVehicle').then(module=>({default:module.Realtime3DVehicle})));
 
 export function App() {
+  const session = useShipmentSession();
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
-  const isFromCargoFit = params.get('source') === 'cargofit';
+  const source = params.get('source');
+  const isFromCargoFit = source === 'cargofit';
+  const isFromPortal = source === 'command_center_portal';
   const [bridge] = useState(() => parseInboundBridge(params));
   const [cargoWeightLbs] = useState<number | undefined>(bridge.cargoWeightLbs);
 
   const [importedBanner, setImportedBanner] = useState<string | null>(() => {
-    const rejectedNote = bridge.rejected.length ? ` ⚠ Ignored invalid handoff value(s): ${bridge.rejected.join('; ')}.` : '';
+    const rejectedNote = bridge.rejected.length ? ` (Ignored invalid handoff value(s): ${bridge.rejected.join('; ')}.` : '';
+    if (isFromPortal) {
+      const orderNum = params.get('orderNumber') || 'Portal Load';
+      const eq = (bridge.equipmentCategory || 'dry_van').replace('_', ' ').toUpperCase();
+      const weightStr = cargoWeightLbs ? ` · ${cargoWeightLbs.toLocaleString()} lbs` : '';
+      return `Order Imported from Command Center Portal (${orderNum}): ${eq}${weightStr} · ${bridge.loadedMiles ?? 920} loaded mi${rejectedNote}`;
+    }
     if (!isFromCargoFit) return rejectedNote ? rejectedNote.trim() : null;
     const scenario = params.get('scenario') || 'Cargo Fit Plan';
     const eq = params.get('equipmentName') || (params.get('equipment') || 'dry_van').replace('_', ' ').toUpperCase();
     const kg = params.get('loadedKg') || '0';
     const units = params.get('placedUnits') || '0';
-    return `✓ Load Plan Imported from Product 01 (${scenario}): ${eq} · ${Number(kg).toLocaleString()} kg · ${units} piece(s)${bridge.loadedMiles ? ` · ${bridge.loadedMiles} loaded mi` : ' · distance not supplied (using editable default)'}${rejectedNote}`;
+    return `Load Plan Imported from Product 01 (${scenario}): ${eq} · ${Number(kg).toLocaleString()} kg · ${units} piece(s)${bridge.loadedMiles ? ` · ${bridge.loadedMiles} loaded mi` : ' · distance not supplied (using editable default)'}${rejectedNote}`;
   });
 
-  const [lane, setLane] = useState<LaneInput>({
-    originCity: 'Chicago',
-    originState: 'IL',
-    destCity: 'Dallas',
-    destState: 'TX',
-    loadedMiles: bridge.loadedMiles ?? 920,
-    deadheadMiles: bridge.deadheadMiles ?? 85,
-    equipmentCategory: bridge.equipmentCategory ?? 'dry_van',
+  const [lane, setLane] = useState<LaneInput>(() => {
+    const orig = params.get('origin') || params.get('originCity') || 'Chicago, IL';
+    const dest = params.get('destination') || params.get('destinationCity') || 'Dallas, TX';
+    const origParts = orig.split(',');
+    const destParts = dest.split(',');
+    return {
+      originCity: origParts[0].trim(),
+      originState: origParts[1]?.trim() || 'IL',
+      destCity: destParts[0].trim(),
+      destState: destParts[1]?.trim() || 'TX',
+      loadedMiles: bridge.loadedMiles ?? 920,
+      deadheadMiles: bridge.deadheadMiles ?? 85,
+      equipmentCategory: bridge.equipmentCategory ?? 'dry_van',
+    };
   });
 
-  const [profile, setProfile] = useState<CarrierCostProfile>(DEFAULT_PROFILE);
+  const [profile, setProfile] = useState<CarrierCostProfile>(() => ({ ...DEFAULT_PROFILE, avgMpgLoaded: bridge.actualMpg ?? DEFAULT_PROFILE.avgMpgLoaded }));
+
+  // Dynamic MPG adjustment derived from verified cargo payload (FP-02)
+  const effectiveProfile = useMemo(() => {
+    if (session?.selectedId) return profile;
+    if (bridge.actualMpg !== undefined || !cargoWeightLbs || cargoWeightLbs <= 0) return profile;
+    const weightDiffThousands = (cargoWeightLbs - 20000) / 1000;
+    const adjustedMpg = Math.max(4.5, Math.min(8.0, Number((profile.avgMpgLoaded - weightDiffThousands * 0.02).toFixed(2))));
+    return { ...profile, avgMpgLoaded: adjustedMpg };
+  }, [profile, cargoWeightLbs, session?.selectedId]);
 
   const [acc, setAcc] = useState<AccessorialsInput>({
     detentionHours: 0,
@@ -75,11 +111,56 @@ export function App() {
   });
 
   const [operatingRatio, setOperatingRatio] = useState<number>(0.90);
+  const draftInputs = { lane, profile: effectiveProfile, acc, operatingRatio };
+  const draftKey = JSON.stringify(draftInputs);
+  useEffect(()=>setPublicationMessage(''),[draftKey]);
+  const draftRef = useRef(draftKey); draftRef.current = draftKey;
+  const imported = useRef<{ id: string; revision: number; key: string; inputRevision: number; fitAt?: string } | null>(null);
+  const [incoming, setIncoming] = useState<Shipment | null>(null);
+  const [publicationMessage, setPublicationMessage] = useState('');
+  function importShared(shipment: Shipment) {
+    const next = inputsForShipment(shipment);
+    imported.current = { id: shipment.id, revision: shipment.revision, key: JSON.stringify(next), inputRevision: shipment.inputRevision, fitAt: shipment.results.fit?.recordedAt };
+    setLane(next.lane); setProfile(next.profile); setAcc(next.acc); setOperatingRatio(next.operatingRatio); setIncoming(null);
+    setImportedBanner(`Connected shipment ${shipment.reference}: ${shipment.input.units.length} identified units. ${shipment.status === 'draft' ? 'Review the native estimate below; acceptance saves these exact terms to the local scenario.' : 'Planning is locked. Inspect the saved terms, or use standalone tools for a new calculation.'}`);
+  }
+  useShipmentContext(shipment => {
+    if (imported.current?.id === shipment.id && imported.current.revision === shipment.revision) return;
+    if (imported.current?.id === shipment.id && draftRef.current !== imported.current.key) { setIncoming(shipment); return; }
+    importShared(shipment);
+  }, false, 'record');
+  useEffect(()=>{
+    if (!session?.selectedId && imported.current) setImportedBanner('Detached local estimate. Inputs are retained for standalone use; edits do not update the shared shipment.');
+  },[session?.selectedId]);
 
   const quote = useMemo(
-    () => generateRateQuote(lane, profile, acc, { targetOperatingRatio: operatingRatio }),
-    [lane, profile, acc, operatingRatio]
+    () => generateRateQuote(lane, effectiveProfile, acc, { targetOperatingRatio: operatingRatio }),
+    [lane, effectiveProfile, acc, operatingRatio]
   );
+  const [customSellRate, setCustomSellRate] = useState<number | null>(null);
+  const [isAccessorialModalOpen, setIsAccessorialModalOpen] = useState<boolean>(false);
+  const [isRouteComplianceModalOpen, setIsRouteComplianceModalOpen] = useState<boolean>(false);
+  const [isFactoringModalOpen, setIsFactoringModalOpen] = useState<boolean>(false);
+  const [isTriangulationModalOpen, setIsTriangulationModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const orderNum = params.get('orderNumber') || 'LANE-QUOTE';
+    platformBus.publish('PRICING_UPDATED', {
+      orderId: orderNum,
+      ratePerMile: quote.recommendedRatePerMile,
+      fuelSurcharge: quote.totalFuelSurcharge,
+      totalQuote: quote.recommendedTotalRate,
+      operatingRatioPct: Math.round(operatingRatio * 100),
+    });
+  }, [quote.recommendedRatePerMile, quote.totalFuelSurcharge, quote.recommendedTotalRate, operatingRatio]);
+  const shipperSellRate = customSellRate ?? Math.round(quote.recommendedTotalRate * 1.15);
+  const sharedReview = useMemo(()=>{
+    if (!session?.shipment) return null;
+    try {
+      if (!imported.current || imported.current.id !== session.shipment.id || imported.current.revision !== session.shipment.revision || imported.current.inputRevision !== session.shipment.inputRevision || imported.current.fitAt !== session.shipment.results.fit?.recordedAt) throw new Error('The shared record changed. Your local estimate is retained; review and load the current shipment before acceptance.');
+      return { result: resultForQuote(session.shipment, draftInputs, quote), error: '' };
+    } catch (error) { return { error: error instanceof Error ? error.message : 'Estimate cannot be accepted.' }; }
+  },[session?.shipment,draftKey,quote,incoming]);
 
   const copyConfirmation = () => {
     const text = `
@@ -102,11 +183,12 @@ ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product
     alert('Rate Confirmation copied to clipboard!');
   };
 
-  const [showIso, setShowIso] = useState<boolean>(true);
+  const [showIso, setShowIso] = useState<boolean>(()=>!session?.selectedId);
   const [isRateConfModalOpen, setIsRateConfModalOpen] = useState<boolean>(false);
 
   return (
-    <main className="app">
+    <main id="main-content" className="app">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <SuiteDock currentProductId="product-02-freight-pricing" />
       <header className="head">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -122,11 +204,32 @@ ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="btn" onClick={() => setShowIso((s) => !s)}>
-              {showIso ? '📐 Hide Spatial 3D HUD' : '🧊 Show Spatial 3D HUD'}
+              {showIso ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><IconBox3d size={13} /> Hide Spatial 3D HUD</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><IconBox3d size={13} /> Show Spatial 3D HUD</span>}
             </button>
           </div>
         </div>
       </header>
+
+      {session?.shipment && <section className="shipment-product-actions" aria-label="Connected quote acceptance">
+        <strong>{session.shipment.status === 'draft' ? 'Review and accept this scenario estimate' : 'Saved scenario estimate and local calculation'}</strong>
+        {session.shipment.status !== 'draft' && <p>Shipment planning is locked after dispatch. Saved terms remain inspectable; standalone calculations remain available.</p>}
+        <p>USD {quote.recommendedTotalRate.toFixed(2)} from the native inputs below. Acceptance saves these exact assumptions and itemized terms. It does not book freight or create a binding agreement.</p>
+        {incoming && <p role="status">Shared inputs changed while you were editing. Your draft is retained until you explicitly load the current shipment.</p>}
+        <div className="shipment-task-buttons">
+          <button className="shipment-primary" disabled={session.busy || !session.online || session.shipment.status !== 'draft' || !sharedReview?.result?.ok || Boolean(sharedReview?.error)} onClick={async()=>{
+            if (!sharedReview?.result?.ok) return;
+            const next=await session.submit('evaluate',{stage:'quote',result:sharedReview.result}, imported.current?.revision);
+            if(next){ imported.current={id:next.id,revision:next.revision,key:draftKey,inputRevision:next.inputRevision,fitAt:next.results.fit?.recordedAt}; setIncoming(null); setPublicationMessage(`Accepted USD ${(Number(next.results.quote?.details.totalCents)/100).toFixed(2)}. Exact inputs and terms are saved in shipment history.`); }
+          }}>Accept reviewed scenario estimate</button>
+          <button onClick={()=>session.inspect('stage:quote')}>Saved quote details</button>
+          <button onClick={()=>session.inspect('stage:fit')}>Loading plan details</button>
+          <button disabled={session.busy || !session.online} onClick={()=>importShared(incoming ?? session.shipment!)}>Load current shared inputs</button>
+          <a href={session.productUrl('command-center-portal')}>Return to Command Center</a>
+        </div>
+        <p role="status">{session.shipment.status !== 'draft' ? 'The saved record remains available in quote details and history. A local calculation does not replace accepted terms.' : sharedReview?.error || publicationMessage || 'Review the draft assumptions and line items before accepting.'}</p>
+        {session.shipment.results.quote && <p>Saved estimate: USD {(Number(session.shipment.results.quote.details.totalCents)/100).toFixed(2)} · {session.shipment.results.quote.inputRevision === session.shipment.inputRevision ? 'current input revision' : 'stale inputs'} · {session.shipment.results.quote.recordedAt}</p>}
+        <details className="shipment-draft-fields"><summary>Reviewed estimate, line items, assumptions and source</summary><StructuredValue value={sharedReview?.result?.details ?? { draftInputs, quote }} /></details>
+      </section>}
 
       {importedBanner && (
         <div style={{
@@ -145,16 +248,17 @@ ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product
           <span>{importedBanner}</span>
           <button
             onClick={() => setImportedBanner(null)}
-            style={{ background: 'transparent', border: 'none', color: '#2dd4bf', cursor: 'pointer', fontSize: 16 }}
+            style={{ background: 'transparent', border: 'none', color: '#2dd4bf', cursor: 'pointer', fontSize: 16, display: 'inline-flex', alignItems: 'center' }}
+            aria-label="Dismiss banner"
           >
-            ✕
+            <IconX size={14} />
           </button>
         </div>
       )}
 
       {showIso && (
         <section aria-label="3D Isometric Digital Twin & Telemetry" style={{ marginBottom: 24 }}>
-          <Realtime3DVehicle
+          <Suspense fallback={<p role="status">Loading optional equipment view…</p>}><Realtime3DVehicle
             equipment={lane.equipmentCategory}
             isHazmat={acc.isHazmat}
             requiresTarp={acc.requiresTarp}
@@ -162,7 +266,7 @@ ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product
             loadedMiles={lane.loadedMiles}
             deadheadMiles={lane.deadheadMiles}
             currentDieselPrice={profile.currentDieselPricePerGallon}
-          />
+          /></Suspense>
           <div style={{ marginTop: 14 }}>
             <TacticalHud
               quote={quote}
@@ -186,7 +290,18 @@ ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product
           <section className="panel" aria-label="Lane Corridor Input">
             <div className="panel-h">
               <b>1. Route Corridor &amp; Mileage</b>
-              <span>{lane.loadedMiles + lane.deadheadMiles} total miles</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{lane.loadedMiles + lane.deadheadMiles} total miles</span>
+                <button
+                  type="button"
+                  className="btn sm"
+                  style={{ padding: '2px 8px', fontSize: 11, fontWeight: 700 }}
+                  onClick={() => setIsRouteComplianceModalOpen(true)}
+                  aria-label="Audit Interstate Fuel Burn and Weigh Stations"
+                >
+                  Weigh Stations &amp; Axles ⚖️
+                </button>
+              </div>
             </div>
             <div className="field-grid">
               <label className="field">
@@ -328,7 +443,18 @@ ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product
           <section className="panel" aria-label="Accessorial Fees">
             <div className="panel-h">
               <b>3. Accessorial Adders &amp; Pass-Throughs</b>
-              <span>${quote.totalAccessorials.toFixed(2)} total</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>${quote.totalAccessorials.toFixed(2)} total</span>
+                <button
+                  type="button"
+                  className="btn sm"
+                  style={{ padding: '2px 8px', fontSize: 11, fontWeight: 700 }}
+                  onClick={() => setIsAccessorialModalOpen(true)}
+                  aria-label="Open Contractual Accessorial Rate Schedule"
+                >
+                  Schedule ⚙️
+                </button>
+              </div>
             </div>
             <div className="field-grid">
               <label className="field">
@@ -428,6 +554,14 @@ ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product
               Lower Operating Ratio = higher net carrier margin. 0.90 is the industry benchmark for dry van/reefer fleets (10% profit margin).
             </p>
           </section>
+
+          <BrokerMarginCard
+            shipperSellRate={shipperSellRate}
+            carrierBuyRate={quote.recommendedTotalRate}
+            approvedAccessorialsBilled={quote.totalAccessorials}
+            approvedAccessorialsPaid={quote.totalAccessorials}
+            onShipperSellRateChange={(rate) => setCustomSellRate(rate)}
+          />
         </div>
 
         {/* Right Column: Rate Quotes, Waterfall, & Signals */}
@@ -458,11 +592,29 @@ ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product
             <div className="panel-h">
               <b>Cost Waterfall Breakdown (Per Loaded Trip)</b>
               <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn sm"
+                  style={{ fontWeight: 600 }}
+                  onClick={() => setIsFactoringModalOpen(true)}
+                  aria-label="Carrier QuickPay and Factoring Settlement Terms"
+                >
+                  QuickPay &amp; Factoring 💳
+                </button>
+                <button
+                  type="button"
+                  className="btn sm"
+                  style={{ fontWeight: 600 }}
+                  onClick={() => setIsTriangulationModalOpen(true)}
+                  aria-label="Backhaul and Triangular Lane Optimizer"
+                >
+                  Triangle Optimizer 📐
+                </button>
                 <button className="btn sm primary" onClick={() => setIsRateConfModalOpen(true)}>
-                  📄 Official Rate Confirmation Agreement
+                  Draft Freight Estimate
                 </button>
                 <button className="btn sm" onClick={copyConfirmation}>
-                  📋 Copy Text
+                  Copy Text
                 </button>
               </div>
             </div>
@@ -523,6 +675,50 @@ ESTIMATE ONLY — not a binding rate confirmation. Generated by CargoFit Product
         acc={acc}
         isOpen={isRateConfModalOpen}
         onClose={() => setIsRateConfModalOpen(false)}
+      />
+
+      <AccessorialRateCardModal
+        isOpen={isAccessorialModalOpen}
+        onClose={() => setIsAccessorialModalOpen(false)}
+        initialDwellHours={acc.detentionHours > 0 ? acc.detentionHours + 2 : 0}
+        initialTonu={false}
+        initialLayover={acc.layoverDays}
+        initialExtraStops={acc.extraStopsCount}
+        onApplyAccessorials={(audit) => {
+          setAcc({
+            ...acc,
+            detentionHours: audit.billableDetentionHours,
+            layoverDays: audit.items.find((i) => i.code === 'LAYOVER')?.billableUnits ?? acc.layoverDays,
+            extraStopsCount: audit.items.find((i) => i.code === 'STOP_OFF')?.billableUnits ?? acc.extraStopsCount,
+            isHazmat: audit.items.some((i) => i.code === 'HAZMAT') ? true : acc.isHazmat,
+          });
+        }}
+      />
+
+      <RouteComplianceModal
+        isOpen={isRouteComplianceModalOpen}
+        onClose={() => setIsRouteComplianceModalOpen(false)}
+        originState={lane.originState}
+        destState={lane.destState}
+        totalMiles={lane.loadedMiles}
+        cargoWeightLbs={cargoWeightLbs || 38500}
+        averageMpg={effectiveProfile.avgMpgLoaded}
+      />
+
+      <FactoringQuickPayModal
+        isOpen={isFactoringModalOpen}
+        onClose={() => setIsFactoringModalOpen(false)}
+        initialGrossPay={quote.recommendedTotalRate}
+      />
+
+      <TriangulationModal
+        isOpen={isTriangulationModalOpen}
+        onClose={() => setIsTriangulationModalOpen(false)}
+        headhaulOrigin={lane.originCity}
+        headhaulDestination={lane.destCity}
+        headhaulMiles={lane.loadedMiles}
+        headhaulRatePerMile={quote.recommendedRatePerMile}
+        fuelSurchargePerMile={quote.fuelSurchargePerMile}
       />
     </main>
   );

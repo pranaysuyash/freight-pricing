@@ -1,5 +1,7 @@
-import React from 'react';
-import { RateQuote, LaneInput, AccessorialsInput } from '../engine/types';
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { RateQuote, LaneInput, AccessorialsInput } from '../engine/types';
+import './rate-estimate.css';
 
 interface RateConfirmationModalProps {
   lane: LaneInput;
@@ -9,191 +11,110 @@ interface RateConfirmationModalProps {
   onClose: () => void;
 }
 
-export const RateConfirmationModal: React.FC<RateConfirmationModalProps> = ({
-  lane,
-  quote,
-  acc,
-  isOpen,
-  onClose,
-}) => {
-  if (!isOpen) return null;
+const money = (value: number) => `$${value.toFixed(2)}`;
 
-  const rateConfNumber = `RC-${Date.now().toString().slice(-6)}`;
-  const todayStr = new Date().toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+/** A fresh mount owns one immutable estimate snapshot and one draft identifier. */
+function FreightEstimateDialog({ lane, quote, acc, onClose }: Omit<RateConfirmationModalProps, 'isOpen'>) {
+  const [draft] = useState(() => ({
+    number: `EST-${crypto.randomUUID()}`,
+    createdAt: new Date().toISOString(),
+    ...structuredClone({ lane, quote, acc }),
+  }));
+  const dialog = useRef<HTMLDialogElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  const latestClose = useRef(onClose);
+  latestClose.current = onClose;
+  const titleId = useId();
+  const scopeId = useId();
+  const q = draft.quote;
+  const route = draft.lane;
+  const inputs = draft.acc;
+  const inputRows = [
+    ['Detention beyond assumed free time', `${inputs.detentionHours} hours`],
+    ['Layover', `${inputs.layoverDays} days`],
+    ['Lumper fee input', money(inputs.lumperFee)],
+    ['Additional delivery stops', String(inputs.extraStopsCount)],
+    ['Hazmat adder requested', inputs.isHazmat ? 'Yes' : 'No'],
+    ['Tarping requested', inputs.requiresTarp ? 'Yes' : 'No'],
+    ['Continuous reefer temperature control requested', inputs.reeferContinuousTempControl ? 'Yes' : 'No'],
+  ];
 
-  return (
-    <div className="modal-backdrop" onClick={onClose} style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: '20px',
-    }}>
-      <div
-        className="rate-conf-container"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: '#ffffff',
-          color: '#0f172a',
-          width: '100%',
-          maxWidth: '850px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          borderRadius: '8px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          padding: '32px',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
-        {/* Toolbar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', borderBottom: '2px solid #e2e8f0', paddingBottom: '16px' }} className="no-print">
-          <div>
-            <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>📄 Official Carrier-Broker Rate Confirmation Agreement</h2>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>Conforms to standard TIA / FMCSA commercial freight contracting standards</span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => window.print()}
-              style={{ padding: '8px 16px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer', fontSize: '12px' }}
-            >
-              🖨️ Print Agreement
-            </button>
-            <button
-              onClick={onClose}
-              style={{ padding: '8px 16px', background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '4px', fontWeight: 600, cursor: 'pointer', fontSize: '12px' }}
-            >
-              ✕ Close
-            </button>
-          </div>
-        </div>
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const node = dialog.current;
+    if (node && !node.open) node.showModal();
+    title.current?.focus();
+    return () => {
+      if (node?.open) node.close();
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, []);
 
-        {/* Contract Sheet */}
-        <div style={{ border: '1px solid #cbd5e1', padding: '24px', borderRadius: '6px' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #0f172a', paddingBottom: '12px', marginBottom: '16px' }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' }}>
-                FREIGHT RATE CONFIRMATION
-              </h1>
-              <span style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>APEX FREIGHT LOGISTICS BROKERAGE · MC# 948102 · DOT# 389211</span>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0284c7' }}>CONFIRMATION #{rateConfNumber}</div>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>DATE: {todayStr}</div>
-            </div>
-          </div>
-
-          {/* Lane Itinerary & Schedule */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '12px', borderRadius: '4px', marginBottom: '16px', border: '1px solid #e2e8f0' }}>
-            <div>
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>ORIGIN / SHIPPER:</span>
-              <div style={{ fontWeight: 700, fontSize: '13px' }}>{lane.originCity}, {lane.originState}</div>
-              <div style={{ fontSize: '11px', color: '#475569' }}>Standard Shipping Dock Bay 4 · Scheduled Pickup: 08:00 EST</div>
-            </div>
-            <div>
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>DESTINATION / CONSIGNEE:</span>
-              <div style={{ fontWeight: 700, fontSize: '13px' }}>{lane.destCity}, {lane.destState}</div>
-              <div style={{ fontSize: '11px', color: '#475569' }}>Receiving Logistics Hub Gate C · Scheduled Delivery: 16:00 CST</div>
-            </div>
-          </div>
-
-          {/* Equipment & Miles */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px', fontSize: '11px' }}>
-            <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '4px' }}>
-              <span style={{ color: '#64748b', display: 'block' }}>EQUIPMENT TYPE:</span>
-              <strong>{lane.equipmentCategory.replace('_', ' ').toUpperCase()}</strong>
-            </div>
-            <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '4px' }}>
-              <span style={{ color: '#64748b', display: 'block' }}>LOADED DISTANCE:</span>
-              <strong>{lane.loadedMiles.toLocaleString()} Miles</strong>
-            </div>
-            <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '4px' }}>
-              <span style={{ color: '#64748b', display: 'block' }}>EMPTY DEADHEAD:</span>
-              <strong>{lane.deadheadMiles.toLocaleString()} Miles</strong>
-            </div>
-            <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '4px' }}>
-              <span style={{ color: '#64748b', display: 'block' }}>TOTAL RECOGNIZED:</span>
-              <strong>{quote.totalMiles.toLocaleString()} Miles</strong>
-            </div>
-          </div>
-
-          {/* Cost Waterfall & Rates Table */}
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '16px' }}>
-            <thead>
-              <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
-                <th style={{ textAlign: 'left', padding: '8px' }}>PAYMENT ITEM / CHARGE CODE</th>
-                <th style={{ textAlign: 'right', padding: '8px' }}>RATE / BASIS</th>
-                <th style={{ textAlign: 'right', padding: '8px' }}>AMOUNT (USD)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px' }}>Base Linehaul Freight Charge</td>
-                <td style={{ textAlign: 'right', padding: '8px' }}>${(quote.recommendedLinehaulRate / lane.loadedMiles).toFixed(2)} / loaded mi</td>
-                <td style={{ textAlign: 'right', padding: '8px', fontWeight: 600 }}>${quote.recommendedLinehaulRate.toFixed(2)}</td>
-              </tr>
-              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px' }}>DOE Weekly Diesel Fuel Surcharge (FSC)</td>
-                <td style={{ textAlign: 'right', padding: '8px' }}>${quote.fuelSurchargePerMile.toFixed(3)} / mi</td>
-                <td style={{ textAlign: 'right', padding: '8px', fontWeight: 600 }}>${quote.totalFuelSurcharge.toFixed(2)}</td>
-              </tr>
-              {acc.detentionHours > 0 && (
-                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '8px' }}>Detention Surcharge ({acc.detentionHours} billable hrs)</td>
-                  <td style={{ textAlign: 'right', padding: '8px' }}>$75.00 / hr</td>
-                  <td style={{ textAlign: 'right', padding: '8px', fontWeight: 600 }}>${(acc.detentionHours * 75).toFixed(2)}</td>
-                </tr>
-              )}
-              {acc.reeferContinuousTempControl && (
-                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '8px' }}>Reefer Continuous Temp Monitoring Fee</td>
-                  <td style={{ textAlign: 'right', padding: '8px' }}>Flat Reefer Accessorial</td>
-                  <td style={{ textAlign: 'right', padding: '8px', fontWeight: 600 }}>$150.00</td>
-                </tr>
-              )}
-              {acc.isHazmat && (
-                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '8px' }}>DOT Hazmat Compliance & Placarding Surcharge</td>
-                  <td style={{ textAlign: 'right', padding: '8px' }}>Hazmat Adder</td>
-                  <td style={{ textAlign: 'right', padding: '8px', fontWeight: 600 }}>$250.00</td>
-                </tr>
-              )}
-              <tr style={{ background: '#f8fafc', fontWeight: 800, fontSize: '13px' }}>
-                <td style={{ padding: '10px 8px' }}>TOTAL AGREED CARRIER COMPENSATION</td>
-                <td style={{ textAlign: 'right', padding: '10px 8px' }}>Effective RPM: ${quote.recommendedRatePerMile.toFixed(2)}/mi</td>
-                <td style={{ textAlign: 'right', padding: '10px 8px', color: '#0284c7', fontSize: '15px' }}>${quote.recommendedTotalRate.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Legal Terms */}
-          <div style={{ fontSize: '10px', color: '#64748b', lineHeight: 1.5, marginBottom: '20px', background: '#f8fafc', padding: '8px', borderRadius: '4px' }}>
-            <strong>TERMS & CONDITIONS:</strong> Carrier agrees to furnish equipment capable of legally transporting cargo described. Carrier certifies active commercial auto liability insurance of at least $1,000,000 and cargo insurance of at least $100,000. Free detention time is 2 hours at origin and destination. Double-brokering or unauthorized re-brokering is strictly prohibited and results in complete forfeiture of carrier pay.
-          </div>
-
-          {/* Signature Blocks */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', paddingTop: '12px', borderTop: '1px solid #cbd5e1' }}>
-            <div>
-              <div style={{ borderBottom: '1px solid #0f172a', height: '36px', marginBottom: '4px' }} />
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#475569' }}>AUTHORIZED BROKER DISPATCH REPRESENTATIVE</span>
-            </div>
-            <div>
-              <div style={{ borderBottom: '1px solid #0f172a', height: '36px', marginBottom: '4px' }} />
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#475569' }}>AUTHORIZED CARRIER / OWNER-OPERATOR SIGNATURE</span>
-            </div>
-          </div>
-        </div>
+  return createPortal(<dialog
+    ref={dialog}
+    className="freight-estimate-dialog"
+    aria-labelledby={titleId}
+    aria-describedby={scopeId}
+    onCancel={event => { event.preventDefault(); latestClose.current(); }}
+    onClick={event => {
+      if (event.target !== event.currentTarget) return;
+      const bounds = event.currentTarget.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) latestClose.current();
+    }}
+  >
+    <div className="freight-estimate-document">
+      <div className="freight-estimate-toolbar">
+        <p>Review the draft, then print or save as PDF.</p>
+        <div><button type="button" onClick={() => window.print()}>Print draft estimate</button><button type="button" onClick={onClose}>Close</button></div>
       </div>
+      <header className="freight-estimate-header">
+        <div><h2 id={titleId} ref={title} tabIndex={-1}>Draft freight estimate</h2><p id={scopeId}>Calculator snapshot for discussion. Commercial acceptance, carrier authority, insurance and appointment confirmation are not established by this document.</p></div>
+        <div className="freight-estimate-identity"><strong>Draft #{draft.number}</strong><time dateTime={draft.createdAt}>{draft.createdAt}</time><small>Values remain fixed while this draft is open. Reopen to capture current calculator inputs.</small></div>
+      </header>
+
+      <section aria-label="Parties and lane" className="freight-estimate-lane">
+        <div><h3>Origin / shipper</h3><strong>{route.originCity || 'Not declared'}, {route.originState || 'Not declared'}</strong><p>Shipper: Not declared<br />Pickup dock: Not declared<br />Pickup appointment and time zone: Not declared</p></div>
+        <div><h3>Destination / consignee</h3><strong>{route.destCity || 'Not declared'}, {route.destState || 'Not declared'}</strong><p>Consignee: Not declared<br />Receiving dock: Not declared<br />Delivery appointment and time zone: Not declared</p></div>
+        <div><h3>Brokerage</h3><p>Brokerage identity: Not declared<br />MC number: Not declared<br />DOT number: Not declared</p></div>
+        <div><h3>Carrier</h3><p>Carrier identity: Not declared<br />MC number: Not declared<br />DOT number: Not declared</p></div>
+      </section>
+
+      <dl className="freight-estimate-metrics">
+        <div><dt>Equipment type</dt><dd>{route.equipmentCategory.replaceAll('_', ' ')}</dd></div>
+        <div><dt>Loaded distance</dt><dd>{route.loadedMiles.toLocaleString()} miles</dd></div>
+        <div><dt>Empty deadhead</dt><dd>{route.deadheadMiles.toLocaleString()} miles</dd></div>
+        <div><dt>Total distance</dt><dd>{q.totalMiles.toLocaleString()} miles</dd></div>
+      </dl>
+
+      <h3>Itemized estimate</h3>
+      <div className="freight-estimate-table-wrap"><table>
+        <thead><tr><th scope="col">Charge item</th><th scope="col">Rate / basis</th><th scope="col">Amount (USD)</th></tr></thead>
+        <tbody>
+          <tr><td>Base linehaul freight charge</td><td>{route.loadedMiles > 0 ? `${money(q.recommendedLinehaulRate / route.loadedMiles)} / loaded mile` : 'No positive loaded distance declared'}</td><td>{money(q.recommendedLinehaulRate)}</td></tr>
+          <tr><td>Calculated diesel fuel surcharge</td><td>${q.fuelSurchargePerMile.toFixed(3)} / loaded mile</td><td>{money(q.totalFuelSurcharge)}</td></tr>
+          {q.accessorialItems.map((item, index) => <tr key={`${item.label}-${index}`}><td>{item.label}</td><td>{'description' in item && typeof item.description === 'string' ? item.description : 'Calculated from declared accessorial inputs'}</td><td>{money(item.amount)}</td></tr>)}
+          <tr className="freight-estimate-total"><th scope="row">Total draft estimate</th><td>Effective loaded RPM: {money(q.recommendedRatePerMile)} / mile</td><td>{money(q.recommendedTotalRate)}</td></tr>
+        </tbody>
+      </table></div>
+      <p className="freight-estimate-note">Fuel and accessorial amounts are calculator outputs from the opened snapshot. Their inclusion does not confirm a service was performed, an index is current or a charge was accepted.</p>
+
+      <details className="freight-estimate-inputs"><summary>Complete accessorial input context</summary><dl>{inputRows.map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl></details>
+
+      <section className="freight-estimate-terms" aria-label="Draft terms for discussion">
+        <h3>Draft terms and assumptions for discussion</h3>
+        <p>Equipment suitability and legal cargo transport require confirmation by the responsible parties. Discussion values for commercial auto liability are $1,000,000 and cargo insurance $100,000. These values are draft context; verified coverage and agreed insurance requirements are not recorded.</p>
+        <p>The calculator treats declared detention hours as billable hours beyond an assumed two-hour free period. Origin and destination free time and actual detention charges require agreement. The inputs above show the hours used in this estimate.</p>
+        <p>Restrictions on double-brokering or unauthorized re-brokering and any proposed effect on compensation require separately reviewed terms. This draft records no agreement, certification, signature or forfeiture of carrier pay.</p>
+      </section>
+
+      <section className="freight-estimate-signatures" aria-label="Review context">
+        <div><span>Broker representative: Not declared</span><span>Review / acceptance status: Not recorded in this calculator draft</span></div>
+        <div><span>Carrier representative: Not declared</span><span>Signature / acceptance evidence: Not recorded in this calculator draft</span></div>
+      </section>
     </div>
-  );
-};
+  </dialog>, document.body);
+}
+
+export function RateConfirmationModal(props: RateConfirmationModalProps) {
+  return props.isOpen ? <FreightEstimateDialog {...props} /> : null;
+}
