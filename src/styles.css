@@ -17,8 +17,8 @@
   --warn-bg: rgba(245, 158, 11, 0.15);
   --err: #ef4444;
   --err-bg: rgba(239, 68, 68, 0.15);
-  --purple: #a855f7;
-  --purple-bg: rgba(168, 85, 247, 0.15);
+  --teal: #14b8a6;
+  --teal-bg: rgba(20, 184, 166, 0.15);
   --radius: 10px;
 }
 
@@ -105,7 +105,7 @@ header.head {
   height: 7px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 10px #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.45);
   animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 @keyframes pulse-dot {
@@ -137,8 +137,10 @@ p.sub { color: var(--muted); font-size: 13.5px; margin-top: 4px; max-width: 80ch
 
 .panel-h {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   margin-bottom: 14px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
@@ -171,7 +173,7 @@ input, select {
   border-radius: 6px;
   background: #0b1120;
   color: var(--ink);
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 input:focus, select:focus {
   outline: none;
@@ -198,7 +200,6 @@ input:focus, select:focus {
   background: #111d33;
   color: #ffffff;
   border-color: #38bdf8;
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.12);
 }
 .rate-card.primary .lbl { color: #38bdf8; }
 .rate-card.primary .val { color: #ffffff; }
@@ -255,10 +256,11 @@ input:focus, select:focus {
   background: #1e293b;
   color: #f8fafc;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 .btn.primary {
   background: #2563eb;

@@ -36,6 +36,6 @@ export function isBenchmarkStale(b: DieselBenchmark, now: Date = new Date()): bo
 
 export function describeBenchmark(b: DieselBenchmark, now: Date = new Date()): string {
   const age = benchmarkAgeDays(b, now);
-  const stale = isBenchmarkStale(b, now) ? ' — STALE, update before quoting' : '';
+  const stale = isBenchmarkStale(b, now) ? ' (STALE, update before quoting)' : '';
   return `$${b.pricePerGallon.toFixed(3)}/gal · ${b.region} · ${b.source} · observed ${b.observedOn} (${age} day${age === 1 ? '' : 's'} old)${stale}`;
 }

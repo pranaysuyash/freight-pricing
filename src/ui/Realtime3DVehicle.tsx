@@ -38,7 +38,6 @@ export const Realtime3DVehicle: React.FC<Realtime3DVehicleProps> = ({
   const rotRef = useRef({ theta: Math.PI / 4, phi: Math.atan(1 / Math.SQRT2) });
   const radiusRef = useRef(55);
 
-  // Initialize Three.js scene
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -80,7 +79,7 @@ export const Realtime3DVehicle: React.FC<Realtime3DVehicleProps> = ({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
@@ -310,11 +309,13 @@ export const Realtime3DVehicle: React.FC<Realtime3DVehicleProps> = ({
 
     // 8. Animation Render Loop
     let animId: number;
-    let clock = new THREE.Clock();
+    const timer = new THREE.Timer();
+    timer.connect(document);
 
-    const animate = () => {
+    const animate = (timestamp?: number) => {
       animId = requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+      timer.update(timestamp);
+      const delta = timer.getDelta();
 
       // Continuous Highway Motion
       if (roadLinesRef.current && simSpeedMph > 0) {
@@ -363,6 +364,7 @@ export const Realtime3DVehicle: React.FC<Realtime3DVehicleProps> = ({
       window.removeEventListener('mouseup', onMouseUp);
       dom.removeEventListener('wheel', onWheel);
       window.removeEventListener('resize', handleResize);
+      timer.disconnect();
       renderer.dispose();
       container.innerHTML = '';
     };

@@ -35,26 +35,26 @@ export function TacticalHud({ quote, currentDiesel, pegBase }: TacticalHudProps)
         <div className="hud-card">
           <div className="hud-card-title">OPERATING RATIO (OR) RADAR</div>
           <div className="hud-gauge-wrap">
-            <svg viewBox="0 0 160 100" className="hud-gauge-svg">
+            <svg viewBox="0 0 160 116" className="hud-gauge-svg">
               {/* Arc background segments */}
               {/* Green profitable zone (75% - 90%) */}
-              <path d="M 20 85 A 65 65 0 0 1 65 26" fill="none" stroke="#22c55e" strokeWidth="10" strokeLinecap="round" />
+              <path d="M 20 76 A 60 60 0 0 1 65 20" fill="none" stroke="#22c55e" strokeWidth="10" strokeLinecap="round" />
               {/* Amber zone (90% - 98%) */}
-              <path d="M 72 23 A 65 65 0 0 1 115 38" fill="none" stroke="#f59e0b" strokeWidth="10" strokeLinecap="round" />
+              <path d="M 72 17 A 60 60 0 0 1 115 32" fill="none" stroke="#f59e0b" strokeWidth="10" strokeLinecap="round" />
               {/* Red zone (98% - 105%) */}
-              <path d="M 122 43 A 65 65 0 0 1 140 85" fill="none" stroke="#ef4444" strokeWidth="10" strokeLinecap="round" />
+              <path d="M 122 37 A 60 60 0 0 1 140 76" fill="none" stroke="#ef4444" strokeWidth="10" strokeLinecap="round" />
 
               {/* Gauge Needle */}
-              <g transform={`rotate(${gaugeAngle}, 80, 85)`}>
-                <line x1="80" y1="85" x2="80" y2="30" stroke="#f8fafc" strokeWidth="3" strokeLinecap="round" />
-                <circle cx="80" cy="85" r="6" fill="#38bdf8" />
+              <g transform={`rotate(${gaugeAngle}, 80, 76)`}>
+                <line x1="80" y1="76" x2="80" y2="25" stroke="#f8fafc" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="80" cy="76" r="5" fill="#38bdf8" />
               </g>
 
-              {/* Center text */}
-              <text x="80" y="78" textAnchor="middle" fill="#f8fafc" fontSize="15" fontFamily="monospace" fontWeight="bold">
+              {/* Center readout clear of the needle pivot */}
+              <text x="80" y="96" textAnchor="middle" fill="#f8fafc" fontSize="14" fontFamily="monospace" fontWeight="700">
                 {(or * 100).toFixed(0)}% OR
               </text>
-              <text x="80" y="93" textAnchor="middle" fill={or <= 0.90 ? '#34d399' : or <= 0.98 ? '#fbbf24' : '#ef4444'} fontSize="8.5" fontWeight="700">
+              <text x="80" y="110" textAnchor="middle" fill={or <= 0.90 ? '#34d399' : or <= 0.98 ? '#fbbf24' : '#ef4444'} fontSize="8.5" fontWeight="700">
                 +{(100 - or * 100).toFixed(1)}% NET MARGIN
               </text>
             </svg>

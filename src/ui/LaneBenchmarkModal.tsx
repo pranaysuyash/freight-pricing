@@ -4,6 +4,7 @@ import {
   CORRIDOR_BENCHMARK_PRESETS,
   benchmarkQuoteAgainstMarket,
 } from '../engine/laneBenchmark';
+import { IconFileText, IconX } from './icons';
 
 export interface LaneBenchmarkModalProps {
   isOpen: boolean;
@@ -86,9 +87,10 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
           <div>
             <h3
               id="lane-benchmark-title"
-              style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#38bdf8' }}
+              style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              📊 Dynamic Spot vs. Contract Benchmark & Lane Density
+              <IconFileText size={16} />
+              <span>Dynamic Spot vs. Contract Benchmark &amp; Lane Density</span>
             </h3>
             <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#94a3b8' }}>
               Synthetic example data only. No live market feed or validated forecast; the selected example may not match your lane.
@@ -106,7 +108,7 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
               padding: '4px 8px',
             }}
           >
-            ✕
+            <IconX size={18} />
           </button>
         </div>
 

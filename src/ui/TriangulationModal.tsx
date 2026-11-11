@@ -3,6 +3,7 @@ import {
   evaluateTriangulationBackhauls,
   TriangleOptimizationInput,
 } from '../engine/triangulationBackhaul';
+import { IconCheck, IconCompass, IconX, IconZap } from './icons';
 
 interface TriangulationModalProps {
   isOpen: boolean;
@@ -153,7 +154,7 @@ export const TriangulationModal: React.FC<TriangulationModalProps> = ({
               justifyContent: 'center',
             }}
           >
-            ✕
+            <IconX size={18} />
           </button>
         </div>
 
@@ -168,8 +169,18 @@ export const TriangulationModal: React.FC<TriangulationModalProps> = ({
               border: `1px solid ${analysis.bestTriangleScenario ? '#bbf7d0' : '#fde68a'}`,
             }}
           >
-            <div style={{ fontWeight: 700, fontSize: 13, color: analysis.bestTriangleScenario ? '#166534' : '#92400e' }}>
-              {analysis.bestTriangleScenario ? '⚡ OPTIMAL TRIANGLE BACKHAUL IDENTIFIED' : 'ℹ️ DIRECT RETURN BASELINE'}
+            <div style={{ fontWeight: 700, fontSize: 13, color: analysis.bestTriangleScenario ? '#166534' : '#92400e', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {analysis.bestTriangleScenario ? (
+                <>
+                  <IconZap size={14} />
+                  <span>OPTIMAL TRIANGLE BACKHAUL IDENTIFIED</span>
+                </>
+              ) : (
+                <>
+                  <IconCompass size={14} />
+                  <span>DIRECT RETURN BASELINE</span>
+                </>
+              )}
             </div>
             <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
               {analysis.recommendationNote}
@@ -268,7 +279,8 @@ export const TriangulationModal: React.FC<TriangulationModalProps> = ({
                       }}
                     >
                       <td style={{ padding: '10px 12px', fontWeight: isTop ? 700 : 500 }}>
-                        {isTop ? '⭐ ' : ''}{cand.scenarioName}
+                        {isTop && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconCheck size={13} /> {cand.scenarioName}</span>}
+                        {!isTop && cand.scenarioName}
                       </td>
                       <td style={{ padding: '10px 12px' }}>{cand.totalNetworkMiles} mi</td>
                       <td style={{ padding: '10px 12px', color: '#16a34a', fontWeight: 600 }}>0 mi (0%)</td>

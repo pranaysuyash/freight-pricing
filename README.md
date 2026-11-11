@@ -1,68 +1,54 @@
-# Product 02 — Freight Pricing & Tactical Dispatch HUD
+# Product 02: Freight Pricing & Tactical Dispatch HUD
 
-**Active Port:** `5174`  
-**Sovereign Directory:** `products/product-02-freight-pricing/`
+Local port: `5174`
+Directory: `products/product-02-freight-pricing/`
 
----
+## Value Proposition
 
-## 1. Value Proposition
-Carriers, freight brokers, and owner-operators routinely bid spot loads with opaque cost visibility, risking negative operating margins when empty deadhead or diesel fuel spikes occur.
+Carriers, freight brokers, and owner-operators often price spot loads without clear visibility into empty deadhead miles, fixed equipment amortization, or diesel price escalation. Product 02 computes an item-by-item cost waterfall and margin floor directly from operator inputs.
 
-Product 02 provides:
-1. **Operating Cost Amortization:** Transparently amortizes monthly fixed equipment payments (truck, trailer, insurance, permits, dispatch) over annual fleet mileage benchmarks into fixed Cost Per Mile (CPM).
-2. **Fuel Surcharge (FSC) Engine:** Calculates a scenario surcharge from declared mileage, MPG, a fuel price and a carrier peg. The default is a dated EIA benchmark, not a live feed.
-3. **Deadhead Absorption Factor:** Transparently allocates empty repositioning miles into the billable loaded rate.
-4. **Accessorial Fee Suite:** Automated adders for facility detention (>2 hrs free time), driver layovers, lumper receipts, intermediate drops, reefer temperature control, and hazmat compliance.
-5. **Target Operating Ratio (OR) Optimization:** Solves for true breakeven floor and recommends spot/contract rates achieving target net operating margins (e.g. 90% OR = 10% net profit).
-6. **3D Isometric Commercial Vehicle Digital Twin:** Real-time Three.js visualization of Class 8 vehicles with dynamic equipment configurations (Dry Van, Reefer at -10°F, Flatbed with winch straps, and DOT Hazmat placards).
-7. **Draft Freight Estimate:** A printable and copyable nonbinding calculator snapshot. It does not establish contract terms, carrier acceptance, insurance, appointments or legal compliance.
+Core capabilities include:
 
----
+1. Fixed equipment amortization that spreads monthly truck, trailer, insurance, permit, and dispatch costs across annual mileage into a fixed cost per mile.
+2. Fuel surcharge (FSC) calculation from declared mileage, loaded/empty MPG, diesel price, and carrier peg. The default value comes from a dated EIA benchmark rather than a live fuel feed.
+3. Deadhead absorption that allocates empty repositioning miles into the billable loaded rate.
+4. Accessorial adders for facility detention (>2 hours free time), driver layovers, lumper receipts, extra stops, reefer fuel run time, and hazmat endorsement.
+5. Target Operating Ratio (OR) solving for breakeven rate floors and net margin targets.
+6. Interactive Three.js isometric vehicle view across Dry Van, Reefer (-10 F), Flatbed, and DOT Hazmat placard presets.
+7. Printable and copyable nonbinding draft freight estimates (without establishing contracts, carrier acceptance, insurance, or legal compliance).
 
-## 2. Architecture & Modules
-- `src/engine/types.ts`: Comprehensive domain interfaces for lanes, equipment profiles, accessorials, cost waterfalls, rate quotes, and telematics shock profiles.
-- `src/engine/costs.ts`: Fixed vs. variable cost accounting (driver labor, maintenance, tires, tolls, equipment amortization).
-- `src/engine/fuel.ts`: US EIA diesel price index, fleet MPG curve, and continuous vs. stepped fuel surcharge formulas.
-- `src/engine/accessorials.ts`: Detention, layover, lumper, reefer, and hazmat adder evaluator.
-- `src/engine/quote.ts`: Master quote generator computing breakeven floors, recommended customer rates, rate per mile (RPM), and cost waterfalls.
-- `src/engine/telematics.ts`: Synthetic waypoint temperature, shock and seal scenarios; neither observed telemetry nor a standards/compliance determination.
-- `src/ui/App.tsx`: Interactive scenario calculator with a nonbinding draft estimate and optional 3D equipment view.
+## Architecture and Modules
 
----
+- `src/engine/types.ts`: Domain interfaces for lanes, equipment profiles, accessorials, cost waterfalls, quotes, and scenario shock profiles.
+- `src/engine/costs.ts`: Fixed vs. variable cost calculations (driver labor, maintenance, tires, tolls, equipment amortization).
+- `src/engine/fuel.ts`: Diesel benchmark pricing, fleet MPG adjustment, and continuous vs. stepped fuel surcharge formulas.
+- `src/engine/accessorials.ts`: Detention, layover, lumper, reefer, and hazmat fee calculation.
+- `src/engine/quote.ts`: Quote engine computing breakeven floors, recommended customer bids, rate per mile, and cost waterfalls.
+- `src/engine/telematics.ts`: Synthetic waypoint temperature, shock, and seal scenario presets (neither live hardware telemetry nor compliance verification).
+- `src/ui/App.tsx`: Interactive scenario calculator with nonbinding draft estimate dialog and optional 3D equipment HUD.
 
-## 3. Cross-Project Bridges
-- **Product 01 (Cargo Fit):** Ingests equipment specs and cargo payload from port 5173 to establish equipment baseline.
-- **Product 03 (HOS Planner):** Dispatches estimated transit schedules and layovers to port 5175.
-- **Product 04 (Asset Studio):** Consumes detailed commercial vehicle models from port 5176.
-- **Product 05 (Fleet Telematics):** The local scenario supports supplied MPG inputs; no live-device telemetry is established by this product.
+## Suite Integration
 
----
+- Cargo Fit (port `5173`): consumes declared equipment and payload baselines.
+- HOS Planner (port `5175`): supplies estimated transit duration and layover inputs.
+- Asset Studio (port `5176`): shares commercial vehicle geometry and tare specifications.
+- Fleet Telematics (port `5177`): local scenario supports supplied MPG inputs without live device telemetry.
 
-## 4. Running & Testing
+## Running and Testing
+
 ```bash
-# Start local development server on port 5174
 npm run dev
-
-# Run Vitest test suite
 npm test
-
-# Build production bundle
 npm run build
-
-# Run typecheck
 npm run typecheck
 ```
 
-## 5. Pricing scenario and audit reconciliation
+## Pricing Scenario and Audit Reconciliation
 
-The recommendation and broker sell input are **all-in USD totals**. A benchmark scenario is displayed in dollars per loaded mile and is converted using the current loaded distance when applied to the broker sell scenario; it does not alter the native carrier estimate or accept a connected quote. Broker spread calculation must not add accessorials to those all-in totals again.
+The recommendation and broker sell inputs represent all-in USD totals. A benchmark scenario is displayed in dollars per loaded mile and converted using the current loaded distance when applied to the broker sell scenario without mutating the native carrier estimate. Broker spread calculations never double-count accessorials onto all-in totals.
 
-The rate-card tool applies its reviewed detention, layover, extra-stop and selected service rates to the calculator. Lumper, tarping and reefer inputs remain independently editable. Applying a new card replaces the prior card selections, including clearing deselected services. Older inputs without an applied card retain the original calculator rates, which preserves historical quote restoration. The connected scenario validates recorded card terms and rejects TONU, liftgate and inside-delivery selections until the shared workflow can establish the required cancellation or service conditions.
+The rate-card dialog applies reviewed detention, layover, extra-stop, and selected service rates to the calculator while leaving lumper, tarping, and reefer inputs independently editable. Applying a new card replaces prior card selections, while older saved quotes without an applied card retain their original calculator rates. Connected scenarios reject TONU, liftgate, and inside-delivery selections until shared workflow prerequisites are satisfied.
 
-Reopening a saved card retains every recorded rate, including currently unselected services. Older records contain billable detention hours but may not contain their original dwell time, free time or rounding interval; the dialog therefore opens those as billable hours without deriving a historical dwell. The operator can explicitly choose a new dwell calculation. New reviews store the full rate schedule and, when supplied, the dwell and policy used. A direct edit of billable hours removes that draft's no-longer-applicable dwell basis; previously saved shipment history is not rewritten. Connected publication validates any recorded dwell basis against the resulting billable hours. Dialog line amounts are rounded for display while the total uses the same aggregate rounding as the quote engine. Fractional-cent values can therefore make the displayed rounded lines sum a cent differently from the aggregate; this preserves the existing calculation contract and is not a representation of individually settled invoice lines.
+Reopening a saved rate card restores every recorded rate, including unselected services. Legacy records that hold billable detention hours without historical dwell or rounding interval open directly as billable hours without inventing dwell history; direct edits to billable hours clear any obsolete dwell basis on the draft without rewriting saved shipment records. Dialog line amounts round for display while the quote engine rounds at the aggregate total.
 
-Lane benchmarks, percentiles, load-to-truck ratios, forecast figures and the score are **synthetic examples**, not live data, validated probabilities or carrier commitments. They are useful only for exploring the interface; the selected example corridor may differ from the current lane. Selecting a scenario is not evidence of a market price.
-
-Clipboard success is shown only after a successful browser write. In a local desktop IAB check on 2026-11-06, the benchmark dialog opened with its synthetic-data notice, focused its close button, and Escape returned focus to the trigger. A separate local browser recheck showed the waypoint percentage and seal events labeled simulated. Clipboard permission behavior, complete focus containment and mobile presentation remain unverified.
-
-The temperature percentage counts the synthetic waypoint samples in the preset range; it is not the percentage of elapsed time in range, physical sensor evidence, or a compliance result. Scheduled seal openings are scenario events, not verified dock observations. `tests/simulatedTelemetryUi.test.ts` exercises these rendered labels; real cargo conditions require independent source evidence. A local 390×844 browser check confirmed the profile selector fits its panel and the focused waypoint region responds to ArrowRight; real-device and broader assistive-technology checks remain open.
+Lane benchmarks, percentiles, load-to-truck ratios, and forecast figures are synthetic examples rather than live market feeds or carrier commitments. Temperature range percentages count synthetic waypoint samples in range rather than elapsed physical sensor hours or compliance determinations. `tests/simulatedTelemetryUi.test.ts` covers those rendered scenario labels.

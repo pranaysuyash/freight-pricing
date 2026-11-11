@@ -3,6 +3,7 @@ import { useModalDialog } from './useModalDialog';
 import { accessorialDialogDraft, evaluateAccessorialDialog } from '../engine/accessorials';
 import type { AccessorialAuditResult } from '../engine/accessorialRateCard';
 import type { AccessorialsInput } from '../engine/types';
+import { IconX } from './icons';
 
 interface AccessorialRateCardModalProps {
   isOpen: boolean;
@@ -113,7 +114,7 @@ export const AccessorialRateCardModal: React.FC<AccessorialRateCardModalProps> =
             }}
             aria-label="Close modal"
           >
-            ✕
+            <IconX size={18} />
           </button>
         </div>
 

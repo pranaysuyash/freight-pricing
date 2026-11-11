@@ -4,6 +4,7 @@ import {
   SETTLEMENT_CONFIGS,
   SettlementPaymentTerm,
 } from '../engine/factoringQuickPay';
+import { IconAlertTriangle, IconX } from './icons';
 
 interface FactoringQuickPayModalProps {
   isOpen: boolean;
@@ -117,7 +118,7 @@ export const FactoringQuickPayModal: React.FC<FactoringQuickPayModalProps> = ({
               lineHeight: 1,
             }}
           >
-            ✕
+            <IconX size={18} />
           </button>
         </div>
 
@@ -204,8 +205,9 @@ export const FactoringQuickPayModal: React.FC<FactoringQuickPayModalProps> = ({
           {/* Factor Notice of Assignment Banner if applicable */}
           {settlement.requiresNoaRemittance && (
             <div style={{ background: '#fef2f2', border: '1px solid #f87171', borderRadius: 8, padding: '12px 16px' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', marginBottom: 4 }}>
-                ⚠ STATUTORY NOTICE OF ASSIGNMENT (NOA) MANDATORY:
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <IconAlertTriangle size={14} />
+                <span>STATUTORY NOTICE OF ASSIGNMENT (NOA) MANDATORY:</span>
               </div>
               <div style={{ fontSize: 11, color: '#b91c1c', lineHeight: 1.4 }}>
                 {settlement.factorNoticeOfAssignment}

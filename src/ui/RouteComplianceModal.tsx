@@ -4,6 +4,7 @@ import {
   RouteComplianceInput,
   DIESEL_DENSITY_LBS_PER_GAL,
 } from '../engine/routeCompliance';
+import { IconAlertTriangle, IconCheck, IconX, IconZap } from './icons';
 
 interface RouteComplianceModalProps {
   isOpen: boolean;
@@ -102,12 +103,25 @@ export const RouteComplianceModal: React.FC<RouteComplianceModalProps> = ({
                 fontSize: 11,
                 fontWeight: 700,
                 padding: '3px 8px',
-                borderRadius: 9999,
+                borderRadius: 6,
                 background: simulation.allWeighStationsCompliant ? '#dcfce7' : '#fee2e2',
                 color: simulation.allWeighStationsCompliant ? '#15803d' : '#b91c1c',
                 border: `1px solid ${simulation.allWeighStationsCompliant ? '#86efac' : '#fca5a5'}`,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
               }}>
-                {simulation.allWeighStationsCompliant ? '✓ 100% STATUTORY LEGAL' : `⚠ ${simulation.violationsCount} STATUTORY VIOLATION(S)`}
+                {simulation.allWeighStationsCompliant ? (
+                  <>
+                    <IconCheck size={12} />
+                    <span>100% STATUTORY LEGAL</span>
+                  </>
+                ) : (
+                  <>
+                    <IconAlertTriangle size={12} />
+                    <span>{simulation.violationsCount} STATUTORY VIOLATION(S)</span>
+                  </>
+                )}
               </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>
@@ -127,7 +141,7 @@ export const RouteComplianceModal: React.FC<RouteComplianceModalProps> = ({
               lineHeight: 1,
             }}
           >
-            ✕
+            <IconX size={18} />
           </button>
         </div>
 
@@ -173,8 +187,9 @@ export const RouteComplianceModal: React.FC<RouteComplianceModalProps> = ({
           {/* Violations Alert if Any */}
           {!simulation.allWeighStationsCompliant && (
             <div style={{ background: '#fef2f2', border: '1px solid #f87171', borderRadius: 8, padding: '12px 16px' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b', marginBottom: 6 }}>
-                ⚠ Statutory Compliance Violations Detected Along Interstate Route:
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <IconAlertTriangle size={14} />
+                <span>Statutory Compliance Violations Detected Along Interstate Route:</span>
               </div>
               <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12, color: '#b91c1c' }}>
                 {simulation.legs.flatMap((l) => l.weighStationsOnLeg.flatMap((w) => w.violations)).map((v, idx) => (
@@ -204,9 +219,13 @@ export const RouteComplianceModal: React.FC<RouteComplianceModalProps> = ({
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
-                ⚡ Auto-Balance Axles (48% CoG & 39.5' KPRA)
+                <IconZap size={13} />
+                <span>Auto-Balance Axles (48% CoG &amp; 39.5&apos; KPRA)</span>
               </button>
             </div>
 
@@ -370,16 +389,16 @@ export const RouteComplianceModal: React.FC<RouteComplianceModalProps> = ({
                       <td style={{ padding: '8px 10px' }}>{leg.cumulativeMiles} mi</td>
                       <td style={{ padding: '8px 10px' }}>{leg.remainingFuelGallons} gal ({leg.remainingFuelWeightLbs} lbs)</td>
                       <td style={{ padding: '8px 10px', color: steerExceeded ? '#dc2626' : '#1e293b', fontWeight: steerExceeded ? 700 : 500 }}>
-                        {leg.steerAxleLbs.toLocaleString()} lbs {steerExceeded && '⚠'}
+                        {leg.steerAxleLbs.toLocaleString()} lbs{steerExceeded ? ' (OVER)' : ''}
                       </td>
                       <td style={{ padding: '8px 10px', color: driveExceeded ? '#dc2626' : '#1e293b', fontWeight: driveExceeded ? 700 : 500 }}>
-                        {leg.driveAxleLbs.toLocaleString()} lbs {driveExceeded && '⚠'}
+                        {leg.driveAxleLbs.toLocaleString()} lbs{driveExceeded ? ' (OVER)' : ''}
                       </td>
                       <td style={{ padding: '8px 10px', color: trailerExceeded ? '#dc2626' : '#1e293b', fontWeight: trailerExceeded ? 700 : 500 }}>
-                        {leg.trailerTandemLbs.toLocaleString()} lbs {trailerExceeded && '⚠'}
+                        {leg.trailerTandemLbs.toLocaleString()} lbs{trailerExceeded ? ' (OVER)' : ''}
                       </td>
-                      <td style={{ padding: '8px 10px', color: gvwExceeded ? '#dc2626' : '#1e293b', fontWeight: gvwExceeded ? 800 : 600 }}>
-                        {leg.totalGvwLbs.toLocaleString()} lbs {gvwExceeded && '⚠'}
+                      <td style={{ padding: '8px 10px', color: gvwExceeded ? '#dc2626' : '#1e293b', fontWeight: gvwExceeded ? 700 : 600 }}>
+                        {leg.totalGvwLbs.toLocaleString()} lbs{gvwExceeded ? ' (OVER)' : ''}
                       </td>
                       <td style={{ padding: '8px 10px' }}>
                         {leg.weighStationsOnLeg.length === 0 ? (
@@ -388,9 +407,9 @@ export const RouteComplianceModal: React.FC<RouteComplianceModalProps> = ({
                           leg.weighStationsOnLeg.map((st, sIdx) => (
                             <div key={sIdx} style={{ fontSize: 11, marginBottom: 2 }}>
                               <strong>{st.station.name} ({st.station.state})</strong>: {st.isCompliant ? (
-                                <span style={{ color: '#16a34a' }}>✓ Legal Pass (Open prob: {Math.round(st.station.openProbability * 100)}%)</span>
+                                <span style={{ color: '#16a34a' }}>Legal Pass (Open prob: {Math.round(st.station.openProbability * 100)}%)</span>
                               ) : (
-                                <span style={{ color: '#dc2626', fontWeight: 700 }}>✗ Violated</span>
+                                <span style={{ color: '#dc2626', fontWeight: 700 }}>Violated</span>
                               )}
                             </div>
                           ))

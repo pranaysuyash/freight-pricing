@@ -128,7 +128,7 @@ export function ColdChainTelematicsPanel({
       </div>
 
       <div role="note" style={{ margin: '8px 0', padding: '8px 12px', border: '1px solid #b45309', background: '#451a03', color: '#fde68a', borderRadius: 6, fontSize: 12 }}>
-        <b>Simulated sensor stream — no physical datalogger or seal reader connected.</b> Temperature, shock and seal values are synthesized for scenario planning and are not observed telemetry or evidence of cargo condition.
+        <b>Simulated sensor stream: no physical datalogger or seal reader connected.</b> Temperature, shock and seal values are synthesized for scenario planning and are not observed telemetry or evidence of cargo condition.
       </div>
 
       {/* KPI Cards */}

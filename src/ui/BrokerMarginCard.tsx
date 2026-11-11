@@ -3,6 +3,7 @@ import {
   evaluateBrokerMargin,
   BrokerMarginReport,
 } from '../engine/brokerMargin';
+import { IconAlertTriangle } from './icons';
 
 interface BrokerMarginCardProps {
   shipperSellRate: number;
@@ -33,42 +34,42 @@ export const BrokerMarginCard: React.FC<BrokerMarginCardProps> = ({
   const getStatusColor = () => {
     switch (marginReport.status) {
       case 'UNDERWATER_NEGATIVE':
-        return '#dc2626';
+        return '#f87171';
       case 'LOW_MARGIN_WARNING':
-        return '#d97706';
+        return '#fbbf24';
       case 'HIGH_YIELD':
-        return '#15803d';
+        return '#4ade80';
       case 'HEALTHY_TARGET':
       default:
-        return '#0284c7';
+        return '#38bdf8';
     }
   };
 
   const getStatusBg = () => {
     switch (marginReport.status) {
       case 'UNDERWATER_NEGATIVE':
-        return '#fef2f2';
+        return 'rgba(239, 68, 68, 0.14)';
       case 'LOW_MARGIN_WARNING':
-        return '#fffbeb';
+        return 'rgba(245, 158, 11, 0.14)';
       case 'HIGH_YIELD':
-        return '#f0fdf4';
+        return 'rgba(34, 197, 94, 0.14)';
       case 'HEALTHY_TARGET':
       default:
-        return '#f0f9ff';
+        return 'rgba(56, 189, 248, 0.14)';
     }
   };
 
   const getStatusBorder = () => {
     switch (marginReport.status) {
       case 'UNDERWATER_NEGATIVE':
-        return '#fca5a5';
+        return 'rgba(248, 113, 113, 0.4)';
       case 'LOW_MARGIN_WARNING':
-        return '#fde68a';
+        return 'rgba(251, 191, 36, 0.4)';
       case 'HIGH_YIELD':
-        return '#86efac';
+        return 'rgba(74, 222, 128, 0.4)';
       case 'HEALTHY_TARGET':
       default:
-        return '#bae6fd';
+        return 'rgba(56, 189, 248, 0.4)';
     }
   };
 
@@ -96,32 +97,32 @@ export const BrokerMarginCard: React.FC<BrokerMarginCardProps> = ({
               ? 'HIGH YIELD'
               : 'TARGET MET'}
           </span>
-          <span className="mono" style={{ fontWeight: 800, fontSize: 13, color: getStatusColor() }}>
+          <span className="mono" style={{ fontWeight: 700, fontSize: 13, color: getStatusColor() }}>
             {marginReport.grossMarginPercent}% Spread
           </span>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', background: '#f8fafc' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>ILLUSTRATIVE CUSTOMER TOTAL</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 12 }}>
+        <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', background: '#0b1120' }}>
+          <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>ILLUSTRATIVE CUSTOMER TOTAL</div>
+          <div className="mono" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: '4px 0' }}>
             ${marginReport.totalShipperInvoice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: 11, color: '#64748b' }}>Customer Bill</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>Customer Bill</div>
         </div>
 
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', background: '#f8fafc' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>ILLUSTRATIVE CARRIER TOTAL</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
+        <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', background: '#0b1120' }}>
+          <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>ILLUSTRATIVE CARRIER TOTAL</div>
+          <div className="mono" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: '4px 0' }}>
             ${marginReport.totalCarrierPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: 11, color: '#64748b' }}>Motor Carrier Buy</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>Motor Carrier Buy</div>
         </div>
 
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', background: getStatusBg() }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>GROSS SPREAD</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: getStatusColor(), margin: '4px 0' }}>
+        <div style={{ border: `1px solid ${getStatusBorder()}`, borderRadius: 8, padding: '10px 12px', background: getStatusBg() }}>
+          <div style={{ fontSize: 10.5, color: 'var(--ink-dim)', fontWeight: 600 }}>GROSS SPREAD</div>
+          <div className="mono" style={{ fontSize: 16, fontWeight: 700, color: getStatusColor(), margin: '4px 0' }}>
             ${marginReport.grossMarginAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: 11, color: getStatusColor(), fontWeight: 700 }}>
@@ -129,20 +130,20 @@ export const BrokerMarginCard: React.FC<BrokerMarginCardProps> = ({
           </div>
         </div>
 
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', background: '#f8fafc' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>AGENT COMM. (20%)</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
+        <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', background: '#0b1120' }}>
+          <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>AGENT COMM. (20%)</div>
+          <div className="mono" style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: '4px 0' }}>
             ${marginReport.agentCommissionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: 11, color: '#64748b' }}>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>
             Net: ${marginReport.brokerNetRetained.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>
 
       {onShipperSellRateChange && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-          <label htmlFor="shipper-sell-input" style={{ fontSize: 12, fontWeight: 700, color: '#334155', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#0b1120', borderRadius: 8, border: '1px solid var(--line)' }}>
+          <label htmlFor="shipper-sell-input" style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-dim)', whiteSpace: 'nowrap' }}>
             Adjust All-In Customer Rate ($):
           </label>
           <input
@@ -152,10 +153,10 @@ export const BrokerMarginCard: React.FC<BrokerMarginCardProps> = ({
             step={25}
             value={shipperSellRate}
             onChange={(e) => onShipperSellRateChange(Math.max(0, Number(e.target.value)))}
-            style={{ padding: '6px 10px', fontSize: 13, fontWeight: 700, borderRadius: 6, border: '1px solid #cbd5e1', width: 140 }}
+            style={{ padding: '6px 10px', fontSize: 13, fontWeight: 700, borderRadius: 6, border: '1px solid var(--line-strong)', width: 140 }}
             aria-label="Adjust All-In Customer Rate Dollar Amount"
           />
-          <span style={{ fontSize: 11, color: '#64748b' }}>
+          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
             Carrier Buy: ${carrierBuyRate.toFixed(2)} · Minimum 12% margin floor: ${(carrierBuyRate / 0.88).toFixed(2)}
           </span>
         </div>
@@ -167,14 +168,18 @@ export const BrokerMarginCard: React.FC<BrokerMarginCardProps> = ({
             marginTop: 10,
             padding: '10px 14px',
             borderRadius: 6,
-            background: marginReport.status === 'UNDERWATER_NEGATIVE' ? '#fef2f2' : '#fffbeb',
-            border: `1px solid ${marginReport.status === 'UNDERWATER_NEGATIVE' ? '#fca5a5' : '#fde68a'}`,
-            color: marginReport.status === 'UNDERWATER_NEGATIVE' ? '#991b1b' : '#92400e',
+            background: marginReport.status === 'UNDERWATER_NEGATIVE' ? 'rgba(239, 68, 68, 0.14)' : 'rgba(245, 158, 11, 0.14)',
+            border: `1px solid ${marginReport.status === 'UNDERWATER_NEGATIVE' ? 'rgba(248, 113, 113, 0.4)' : 'rgba(251, 191, 36, 0.4)'}`,
+            color: marginReport.status === 'UNDERWATER_NEGATIVE' ? '#fca5a5' : '#fde68a',
             fontSize: 12,
             fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
           }}
         >
-          ⚠️ {marginReport.alertMessage}
+          <IconAlertTriangle size={14} />
+          <span>{marginReport.alertMessage}</span>
         </div>
       )}
     </section>
