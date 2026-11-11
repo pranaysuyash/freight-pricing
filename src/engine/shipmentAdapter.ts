@@ -2,6 +2,7 @@ import { generateRateQuote } from './quote';
 import { calculateFuelSurcharge } from './fuel';
 import { EIA_DIESEL_BENCHMARK } from './dieselBenchmark';
 import { evaluateBrokerMargin } from './brokerMargin';
+import { evaluateDynamicAccessorials } from './accessorialRateCard';
 import type { AccessorialsInput, CarrierCostProfile, LaneInput, RateQuote } from './types';
 import type { Shipment, ShipmentAdapter, StageResult } from '../suite/types';
 
@@ -75,6 +76,19 @@ function validateInputs(shipment: Shipment, inputs: PricingInputs) {
   if (typeof profile.id !== 'string' || !profile.id.trim() || typeof profile.name !== 'string' || !profile.name.trim()) throw new Error('A named native carrier cost profile is required.');
   if (!positive(operatingRatio) || operatingRatio > 1) throw new Error('Target operating ratio must be finite, greater than 0 and no greater than 1.');
   if (!['detentionHours', 'layoverDays', 'lumperFee', 'extraStopsCount'].every(key => nonnegative(acc[key as keyof AccessorialsInput])) || !['isHazmat', 'requiresTarp', 'reeferContinuousTempControl'].every(key => typeof acc[key as keyof AccessorialsInput] === 'boolean')) throw new Error('Accessorial quantities must be finite nonnegative numbers and handling flags must be boolean.');
+  if (acc.appliedRateCard !== undefined) {
+    const card = acc.appliedRateCard;
+    if (!card || !['detentionHourlyRate', 'layoverDailyRate', 'stopOffRate', 'hazmatSurcharge', 'tonuFlatFee', 'liftgateFee', 'insideDeliveryFee'].every(key => nonnegative(card[key as keyof typeof card])) || !['tonuTriggered', 'requiresLiftgate', 'requiresInsideDelivery'].every(key => typeof card[key as keyof typeof card] === 'boolean')) throw new Error('Applied accessorial rate-card terms must be finite nonnegative amounts and boolean service selections.');
+    const hasDwell = ['detentionFreeHours', 'detentionIncrementMinutes', 'totalDwellHours'].some(key => Object.hasOwn(card, key));
+    if (hasDwell) {
+      if (!nonnegative(card.detentionFreeHours) || !positive(card.detentionIncrementMinutes) || !nonnegative(card.totalDwellHours)) throw new Error('Recorded dwell and detention policy must be complete, finite and valid.');
+      const { billableDetentionHours } = evaluateDynamicAccessorials({ totalDwellHours: card.totalDwellHours }, {
+        ...card, detentionFreeHours: card.detentionFreeHours, detentionIncrementMinutes: card.detentionIncrementMinutes,
+      });
+      if (!Number.isFinite(billableDetentionHours) || Math.abs(billableDetentionHours - acc.detentionHours) > 1e-9) throw new Error('Recorded dwell and policy do not match billable detention hours.');
+    }
+    if (card.tonuTriggered || card.requiresLiftgate || card.requiresInsideDelivery) throw new Error('TONU, liftgate and inside delivery remain available in standalone Pricing; the connected shipment does not yet establish those service or cancellation conditions.');
+  }
   if (acc.isHazmat || acc.reeferContinuousTempControl || lane.equipmentCategory === 'reefer' || shipment.input.units.some(unit => unit.temperatureClass !== 'ambient')) throw new Error(`Additional handling qualification is required. ${standaloneLimit}`);
   if (acc.extraStopsCount !== 0) throw new Error(`The connected loading plan covers one destination, so extra stops cannot be accepted here. ${standaloneLimit}`);
   if (acc.requiresTarp && !['flatbed', 'step_deck'].includes(lane.equipmentCategory)) throw new Error('Tarping requires the matching flatbed or step-deck equipment. Amend the selected equipment in Command Center, or explore the native scenario in standalone Pricing.');

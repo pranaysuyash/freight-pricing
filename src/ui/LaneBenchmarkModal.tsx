@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useModalDialog } from './useModalDialog';
 import {
   CORRIDOR_BENCHMARK_PRESETS,
   benchmarkQuoteAgainstMarket,
@@ -21,6 +22,7 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
   const [proposedRate, setProposedRate] = useState<number>(currentRatePerMile || 2.45);
   const [customLTR, setCustomLTR] = useState<number | undefined>(undefined);
 
+  const dialog = useModalDialog(isOpen);
   if (!isOpen) return null;
 
   const comparison = benchmarkQuoteAgainstMarket(proposedRate, selectedCorridorKey, customLTR);
@@ -35,13 +37,16 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
   };
 
   return (
-    <div
-      role="dialog"
+    <dialog
+      ref={dialog}
+      onCancel={(e) => { e.preventDefault(); onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       aria-modal="true"
       aria-labelledby="lane-benchmark-title"
       style={{
         position: 'fixed',
         inset: 0,
+        width: '100%', height: '100%', maxWidth: 'none', maxHeight: 'none', margin: 0, border: 0, boxSizing: 'border-box',
         zIndex: 9999,
         backgroundColor: 'rgba(2, 6, 23, 0.75)',
         backdropFilter: 'blur(4px)',
@@ -86,7 +91,7 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
               📊 Dynamic Spot vs. Contract Benchmark & Lane Density
             </h3>
             <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#94a3b8' }}>
-              DAT iQ RateView & FreightWaves SONAR Market Density Telemetry
+              Synthetic example data only. No live market feed or validated forecast; the selected example may not match your lane.
             </p>
           </div>
           <button
@@ -110,10 +115,11 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
           {/* Corridor Selection & Rate Input */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
+              <label htmlFor="benchmark-corridor" style={{ display: 'block', fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
                 CORRIDOR & EQUIPMENT BENCHMARK:
               </label>
               <select
+                id="benchmark-corridor"
                 value={selectedCorridorKey}
                 onChange={(e) => {
                   setSelectedCorridorKey(e.target.value);
@@ -138,10 +144,11 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
+              <label htmlFor="benchmark-rate" style={{ display: 'block', fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
                 PROPOSED QUOTE RATE ($/MI):
               </label>
               <input
+                id="benchmark-rate"
                 type="number"
                 step="0.05"
                 min="1.0"
@@ -208,13 +215,13 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
               </div>
             </div>
             <div>
-              <span style={{ fontSize: '10px', color: '#94a3b8' }}>7-Day Forecast Trend:</span>
+              <span style={{ fontSize: '10px', color: '#94a3b8' }}>Example 7-Day Scenario:</span>
               <div style={{ fontSize: '12px', fontWeight: 700, color: '#f8fafc' }}>
                 {profile.forecast7Day.trend} (${profile.forecast7Day.projectedRatePerMile.toFixed(2)}/mi)
               </div>
             </div>
             <div>
-              <span style={{ fontSize: '10px', color: '#94a3b8' }}>Acceptance Probability:</span>
+              <span style={{ fontSize: '10px', color: '#94a3b8' }}>Illustrative score (not a probability):</span>
               <div
                 style={{
                   fontSize: '14px',
@@ -223,7 +230,7 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
                   color: comparison.acceptanceProbabilityPct >= 75 ? '#10b981' : '#f59e0b',
                 }}
               >
-                {comparison.acceptanceProbabilityPct}%
+                {comparison.acceptanceProbabilityPct} / 100
               </div>
             </div>
           </div>
@@ -238,7 +245,7 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11px', color: '#94a3b8' }}>
-              <span>30-DAY HISTORICAL RATE BANDS</span>
+              <span>ILLUSTRATIVE RATE BANDS</span>
               <span>Proposed: <strong>${proposedRate.toFixed(2)}/mi</strong> ({comparison.deltaFromMedianPct >= 0 ? '+' : ''}{comparison.deltaFromMedianPct}% vs Median)</span>
             </div>
 
@@ -367,11 +374,11 @@ export const LaneBenchmarkModal: React.FC<LaneBenchmarkModalProps> = ({
                 cursor: 'pointer',
               }}
             >
-              Adopt Rate (${proposedRate.toFixed(2)}/mi)
+              Use for broker sell scenario (${proposedRate.toFixed(2)}/mi)
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

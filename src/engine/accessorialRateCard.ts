@@ -52,6 +52,8 @@ export interface AccessorialAuditResult {
   totalAmount: number;
   billableDetentionHours: number;
   items: AccessorialLineItem[];
+  rateCard?: AccessorialRateCard;
+  detentionBasis?: { mode: 'dwell' | 'billable'; hours: number };
 }
 
 export function evaluateDynamicAccessorials(
@@ -168,5 +170,7 @@ export function evaluateDynamicAccessorials(
     totalAmount: Math.round(totalAmount * 100) / 100,
     billableDetentionHours,
     items,
+    rateCard: { ...rateCard },
+    detentionBasis: input.totalDwellHours === undefined ? undefined : { mode: 'dwell', hours: input.totalDwellHours },
   };
 }

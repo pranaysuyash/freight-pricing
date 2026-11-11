@@ -26,8 +26,8 @@ export function TacticalHud({ quote, currentDiesel, pegBase }: TacticalHudProps)
   return (
     <div className="tactical-hud-panel" role="region" aria-label="Tactical Dispatch & Market Instruments">
       <div className="tactical-hud-h">
-        <span className="hud-tag">TACTICAL DISPATCH TELEMETRY</span>
-        <span className="hud-signal mono">REAL-TIME EQUILIBRIUM ACTIVE</span>
+        <span className="hud-tag">SCENARIO PRICING INSTRUMENTS</span>
+        <span className="hud-signal mono">RECALCULATED FROM INPUTS</span>
       </div>
 
       <div className="hud-grid">

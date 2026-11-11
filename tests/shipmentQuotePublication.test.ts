@@ -202,3 +202,54 @@ describe('connected quote boundaries', () => {
     }
   });
 });
+
+describe('applied accessorial rate card in connected shipments', () => {
+  it('restores a non-default schedule, reopens and reapplies it without repricing', async () => {
+    const { accessorialDialogDraft, applyAccessorialAudit, evaluateAccessorialDialog } = await import('../src/engine/accessorials');
+    const s = shipment(); const inputs = adapter.inputsForShipment(s);
+    inputs.acc.detentionHours = 0.1;
+    inputs.acc.appliedRateCard = {
+      detentionHourlyRate: 100.25, layoverDailyRate: 421.11, stopOffRate: 98.76,
+      hazmatSurcharge: 230.12, tonuFlatFee: 312.35, liftgateFee: 144.25, insideDeliveryFee: 164.75,
+      tonuTriggered: false, requiresLiftgate: false, requiresInsideDelivery: false,
+    };
+    const originalQuote = nativeQuote(inputs);
+    accept(s, adapter.resultForQuote(s, inputs, originalQuote));
+    const restored = adapter.inputsForShipment(s);
+    const reapplied = applyAccessorialAudit(restored.acc, evaluateAccessorialDialog(accessorialDialogDraft(restored.acc)));
+    expect(reapplied).toEqual(inputs.acc);
+    expect(nativeQuote({ ...restored, acc: reapplied })).toEqual(originalQuote);
+    expect(adapter.resultForQuote(s, { ...restored, acc: reapplied }, originalQuote).details.totalCents).toBe(s.results.quote!.details.totalCents);
+  });
+  it('persists and restores the reviewed schedule without changing legacy snapshots', async () => {
+    const { applyAccessorialAudit } = await import('../src/engine/accessorials');
+    const { evaluateDynamicAccessorials } = await import('../src/engine/accessorialRateCard');
+    const s = shipment(); const inputs = adapter.inputsForShipment(s);
+    inputs.acc = applyAccessorialAudit(inputs.acc, evaluateDynamicAccessorials({ totalDwellHours: 3 }));
+    const quote = nativeQuote(inputs);
+    expect(quote.totalAccessorials).toBe(85);
+    accept(s, adapter.resultForQuote(s, inputs, quote));
+    expect(adapter.inputsForShipment(s)).toEqual(inputs);
+  });
+  it('rejects unsupported connected service claims and invalid schedule amounts', async () => {
+    const { applyAccessorialAudit } = await import('../src/engine/accessorials');
+    const { evaluateDynamicAccessorials } = await import('../src/engine/accessorialRateCard');
+    const s = shipment(); const inputs = adapter.inputsForShipment(s);
+    inputs.acc = applyAccessorialAudit(inputs.acc, evaluateDynamicAccessorials({ requiresLiftgate: true }));
+    expect(() => adapter.resultForQuote(s, inputs, nativeQuote(inputs))).toThrow(/connected shipment does not yet establish/);
+    inputs.acc.appliedRateCard!.requiresLiftgate = false;
+    inputs.acc.appliedRateCard!.detentionHourlyRate = NaN;
+    expect(() => adapter.resultForQuote(s, inputs, nativeQuote(inputs))).toThrow(/finite nonnegative/);
+  });
+  it('rejects inconsistent or incomplete recorded dwell metadata', async () => {
+    const { applyAccessorialAudit } = await import('../src/engine/accessorials');
+    const { evaluateDynamicAccessorials } = await import('../src/engine/accessorialRateCard');
+    const s = shipment(); const inputs = adapter.inputsForShipment(s);
+    inputs.acc = applyAccessorialAudit(inputs.acc, evaluateDynamicAccessorials({ totalDwellHours: 3 }));
+    inputs.acc.detentionHours = 3;
+    expect(() => adapter.resultForQuote(s, inputs, nativeQuote(inputs))).toThrow(/dwell/i);
+    inputs.acc.detentionHours = 1;
+    delete inputs.acc.appliedRateCard!.detentionIncrementMinutes;
+    expect(() => adapter.resultForQuote(s, inputs, nativeQuote(inputs))).toThrow(/dwell/i);
+  });
+});

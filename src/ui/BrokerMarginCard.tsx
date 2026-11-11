@@ -104,7 +104,7 @@ export const BrokerMarginCard: React.FC<BrokerMarginCardProps> = ({
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', background: '#f8fafc' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>SHIPPER INVOICE</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>ILLUSTRATIVE CUSTOMER TOTAL</div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
             ${marginReport.totalShipperInvoice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
@@ -112,7 +112,7 @@ export const BrokerMarginCard: React.FC<BrokerMarginCardProps> = ({
         </div>
 
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', background: '#f8fafc' }}>
-          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>CARRIER PAYABLE</div>
+          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>ILLUSTRATIVE CARRIER TOTAL</div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
             ${marginReport.totalCarrierPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
@@ -143,7 +143,7 @@ export const BrokerMarginCard: React.FC<BrokerMarginCardProps> = ({
       {onShipperSellRateChange && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
           <label htmlFor="shipper-sell-input" style={{ fontSize: 12, fontWeight: 700, color: '#334155', whiteSpace: 'nowrap' }}>
-            Adjust Customer Sell Rate ($):
+            Adjust All-In Customer Rate ($):
           </label>
           <input
             id="shipper-sell-input"
@@ -153,7 +153,7 @@ export const BrokerMarginCard: React.FC<BrokerMarginCardProps> = ({
             value={shipperSellRate}
             onChange={(e) => onShipperSellRateChange(Math.max(0, Number(e.target.value)))}
             style={{ padding: '6px 10px', fontSize: 13, fontWeight: 700, borderRadius: 6, border: '1px solid #cbd5e1', width: 140 }}
-            aria-label="Adjust Customer Sell Rate Dollar Amount"
+            aria-label="Adjust All-In Customer Rate Dollar Amount"
           />
           <span style={{ fontSize: 11, color: '#64748b' }}>
             Carrier Buy: ${carrierBuyRate.toFixed(2)} · Minimum 12% margin floor: ${(carrierBuyRate / 0.88).toFixed(2)}

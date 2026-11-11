@@ -39,7 +39,26 @@ export interface CarrierCostProfile {
   fscPegBasePricePerGallon: number; // e.g. $1.20 / gal benchmark
 }
 
+export interface AppliedAccessorialRateCard {
+  detentionHourlyRate: number;
+  layoverDailyRate: number;
+  stopOffRate: number;
+  hazmatSurcharge: number;
+  tonuFlatFee: number;
+  liftgateFee: number;
+  insideDeliveryFee: number;
+  tonuTriggered: boolean;
+  requiresLiftgate: boolean;
+  requiresInsideDelivery: boolean;
+  /** Optional original claim/policy. Older saved quotes retain only billable hours. */
+  detentionFreeHours?: number;
+  detentionIncrementMinutes?: number;
+  totalDwellHours?: number;
+}
+
 export interface AccessorialsInput {
+  /** Present only after the operator applies the rate-card scenario. Legacy inputs retain their original assumptions. */
+  appliedRateCard?: AppliedAccessorialRateCard;
   detentionHours: number; // Hours beyond 2 hrs free time ($75/hr)
   layoverDays: number; // Days ($350/day)
   lumperFee: number; // Unloading service pass-through ($)

@@ -71,15 +71,16 @@ export function ColdChainTelematicsPanel({
 
   return (
     <div className="panel" style={{ marginTop: 20 }}>
-      <div className="panel-h" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <b>Cold-Chain Telematics &amp; 3-Axis Shock Sensor Array</b>
+      <div className="panel-h" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+          <b>Cold-chain temperature and shock scenario</b>
           <span style={{ marginLeft: 10, fontSize: 12, color: '#94a3b8' }}>
-            FSMA 21 CFR § 1.908 &amp; ASTM D4169 / ISTA 3A Digital Twin
+            Synthetic waypoint samples; not a standards or compliance assessment
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', flex: '1 1 220px', minWidth: 0, gap: 8, alignItems: 'center' }}>
           <select
+            aria-label="Cold-chain scenario profile"
             value={profile}
             onChange={(e) => setProfile(e.target.value as ColdChainProfile)}
             style={{
@@ -90,6 +91,7 @@ export function ColdChainTelematicsPanel({
               padding: '4px 10px',
               fontSize: 12,
               fontWeight: 600,
+              maxWidth: '100%',
             }}
           >
             <option value="pharma_cold">Pharma Cold (+2°C to +8°C)</option>
@@ -132,7 +134,7 @@ export function ColdChainTelematicsPanel({
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, margin: '16px 0' }}>
         <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase' }}>Thermal Compliance</div>
+          <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase' }}>Simulated samples in range</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: report.thermalCompliancePct >= 95 ? '#22c55e' : '#ef4444', marginTop: 4 }}>
             {report.thermalCompliancePct}%
           </div>
@@ -173,7 +175,8 @@ export function ColdChainTelematicsPanel({
       </div>
 
       {/* Telemetry Waypoint Log Table */}
-      <div style={{ overflowX: 'auto', border: '1px solid #1e293b', borderRadius: 8 }}>
+      <p style={{ color: '#cbd5e1', fontSize: 12, margin: '8px 0' }}>Swipe or scroll horizontally to see all simulated waypoint columns.</p>
+      <div role="region" aria-label="Simulated waypoint readings, scroll horizontally" tabIndex={0} style={{ overflowX: 'auto', border: '1px solid #1e293b', borderRadius: 8 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
           <thead>
             <tr style={{ background: '#0f172a', borderBottom: '1px solid #334155', color: '#94a3b8' }}>
@@ -202,9 +205,9 @@ export function ColdChainTelematicsPanel({
                   </span>
                 </td>
                 <td style={{ padding: '8px 12px' }}>
-                  {r.sealStatus === 'intact' && <span style={{ color: '#22c55e' }}>● Intact</span>}
-                  {r.sealStatus === 'tampered' && <span style={{ color: '#ef4444', fontWeight: 700 }}>● TAMPERED</span>}
-                  {r.sealStatus === 'authorized_open' && <span style={{ color: '#38bdf8' }}>○ Dock Verified</span>}
+                  {r.sealStatus === 'intact' && <span style={{ color: '#22c55e' }}>● Simulated intact</span>}
+                  {r.sealStatus === 'tampered' && <span style={{ color: '#ef4444', fontWeight: 700 }}>● Simulated tampering</span>}
+                  {r.sealStatus === 'authorized_open' && <span style={{ color: '#38bdf8' }}>○ Simulated scheduled opening</span>}
                 </td>
               </tr>
             ))}

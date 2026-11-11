@@ -1,53 +1,40 @@
 import React, { useState, useMemo } from 'react';
-import {
-  evaluateDynamicAccessorials,
-  DEFAULT_RATE_CARD,
-  AccessorialRateCard,
-  AccessorialAuditResult,
-} from '../engine/accessorialRateCard';
+import { useModalDialog } from './useModalDialog';
+import { accessorialDialogDraft, evaluateAccessorialDialog } from '../engine/accessorials';
+import type { AccessorialAuditResult } from '../engine/accessorialRateCard';
+import type { AccessorialsInput } from '../engine/types';
 
 interface AccessorialRateCardModalProps {
   isOpen: boolean;
   onClose: () => void;
   onApplyAccessorials: (audit: AccessorialAuditResult) => void;
-  initialDwellHours?: number;
-  initialTonu?: boolean;
-  initialLayover?: number;
-  initialExtraStops?: number;
+  initialAccessorials: AccessorialsInput;
 }
 
 export const AccessorialRateCardModal: React.FC<AccessorialRateCardModalProps> = ({
   isOpen,
   onClose,
   onApplyAccessorials,
-  initialDwellHours = 0,
-  initialTonu = false,
-  initialLayover = 0,
-  initialExtraStops = 0,
+  initialAccessorials,
 }) => {
-  const [rateCard] = useState<AccessorialRateCard>(DEFAULT_RATE_CARD);
-  const [dwellHours, setDwellHours] = useState<number>(initialDwellHours);
-  const [tonu, setTonu] = useState<boolean>(initialTonu);
-  const [layoverDays, setLayoverDays] = useState<number>(initialLayover);
-  const [extraStops, setExtraStops] = useState<number>(initialExtraStops);
-  const [liftgate, setLiftgate] = useState<boolean>(false);
-  const [insideDelivery, setInsideDelivery] = useState<boolean>(false);
-  const [isHazmat, setIsHazmat] = useState<boolean>(false);
+  const [initial] = useState(() => accessorialDialogDraft(initialAccessorials));
+  const [rateCard] = useState(initial.rateCard);
+  const [detentionMode, setDetentionMode] = useState(initial.detention.mode);
+  const [dwellHours, setDwellHours] = useState(initial.detention.mode === 'dwell' ? initial.detention.hours : 0);
+  const [billableHours, setBillableHours] = useState(initial.detention.mode === 'billable' ? initial.detention.hours : 0);
+  const detentionHours = detentionMode === 'dwell' ? dwellHours : billableHours;
+  const [tonu, setTonu] = useState(initial.tonu);
+  const [layoverDays, setLayoverDays] = useState(initial.layoverDays);
+  const [extraStops, setExtraStops] = useState(initial.extraStops);
+  const [liftgate, setLiftgate] = useState(initial.liftgate);
+  const [insideDelivery, setInsideDelivery] = useState(initial.insideDelivery);
+  const [isHazmat, setIsHazmat] = useState(initial.isHazmat);
+  const dialog = useModalDialog(isOpen);
 
   const auditResult: AccessorialAuditResult = useMemo(() => {
-    return evaluateDynamicAccessorials(
-      {
-        totalDwellHours: dwellHours,
-        tonuTriggered: tonu,
-        layoverDays: layoverDays,
-        intermediateStops: extraStops,
-        requiresLiftgate: liftgate,
-        requiresInsideDelivery: insideDelivery,
-        isHazmat: isHazmat,
-      },
-      rateCard
-    );
-  }, [dwellHours, tonu, layoverDays, extraStops, liftgate, insideDelivery, isHazmat, rateCard]);
+    return evaluateAccessorialDialog({ rateCard, detention: { mode: detentionMode, hours: detentionHours },
+      tonu, layoverDays, extraStops, liftgate, insideDelivery, isHazmat });
+  }, [detentionHours, detentionMode, tonu, layoverDays, extraStops, liftgate, insideDelivery, isHazmat, rateCard]);
 
   if (!isOpen) return null;
 
@@ -57,14 +44,16 @@ export const AccessorialRateCardModal: React.FC<AccessorialRateCardModalProps> =
   };
 
   return (
-    <div
+    <dialog
+      ref={dialog}
+      onCancel={(e) => { e.preventDefault(); onClose(); }}
       className="modal-backdrop"
-      role="dialog"
       aria-modal="true"
       aria-labelledby="accessorial-modal-title"
       style={{
         position: 'fixed',
         inset: 0,
+        width: '100%', height: '100%', maxWidth: 'none', maxHeight: 'none', margin: 0, border: 0, boxSizing: 'border-box',
         background: 'rgba(0,0,0,0.65)',
         backdropFilter: 'blur(4px)',
         zIndex: 1050,
@@ -104,7 +93,7 @@ export const AccessorialRateCardModal: React.FC<AccessorialRateCardModalProps> =
               Contractual Accessorial Rate Schedule &amp; Claims
             </h2>
             <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>
-              Standard 2-hr free time, pro-rated detention ($85/hr), TONU, and special handling
+              Review the current rates, detention and special handling before applying.
             </p>
           </div>
           <button
@@ -133,10 +122,10 @@ export const AccessorialRateCardModal: React.FC<AccessorialRateCardModalProps> =
           <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 14, background: '#f8fafc' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <label htmlFor="dwell-hours-input" style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
-                Facility Dwell Time (Hours):
+                {detentionMode === 'dwell' ? 'Facility Dwell Time (Hours):' : 'Billable Detention (Hours):'}
               </label>
               <span style={{ fontSize: 12, fontWeight: 700, color: auditResult.billableDetentionHours > 0 ? '#b91c1c' : '#15803d' }}>
-                {auditResult.billableDetentionHours > 0 ? `${auditResult.billableDetentionHours}h Billable Detention ($${(auditResult.billableDetentionHours * rateCard.detentionHourlyRate).toFixed(2)})` : 'Within 2.0h Free Time'}
+                {auditResult.billableDetentionHours > 0 ? `${auditResult.billableDetentionHours}h Billable Detention ($${(auditResult.billableDetentionHours * rateCard.detentionHourlyRate).toFixed(2)})` : 'No billable detention'}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -144,16 +133,22 @@ export const AccessorialRateCardModal: React.FC<AccessorialRateCardModalProps> =
                 id="dwell-hours-input"
                 type="number"
                 min={0}
-                step={0.25}
-                value={dwellHours}
-                onChange={(e) => setDwellHours(Math.max(0, Number(e.target.value)))}
+                step="any"
+                value={detentionHours}
+                onChange={(e) => (detentionMode === 'dwell' ? setDwellHours : setBillableHours)(Math.max(0, Number(e.target.value)))}
                 style={{ padding: '8px 12px', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1px solid #cbd5e1', width: 120 }}
-                aria-label="Total facility dwell hours"
+                aria-label={detentionMode === 'dwell' ? 'Total facility dwell hours' : 'Billable detention hours'}
               />
               <span style={{ fontSize: 12, color: '#64748b' }}>
-                Rule: {rateCard.detentionFreeHours} hours free, billed in {rateCard.detentionIncrementMinutes}-minute increments @ ${rateCard.detentionHourlyRate}/hr
+                {detentionMode === 'dwell' ? `${initial.detention.mode === 'billable' ? 'New calculation assumptions' : 'Rule'}: ${rateCard.detentionFreeHours} hours free, billed in ${rateCard.detentionIncrementMinutes}-minute increments @ $${rateCard.detentionHourlyRate}/hr` : `Billable hours @ $${rateCard.detentionHourlyRate}/hr; ${initial.detention.mode === 'billable' ? 'original dwell and rounding terms are unavailable' : 'dwell and rounding are not used for this calculation'}.`}
               </span>
             </div>
+            <button type="button" onClick={() => {
+              if (detentionMode === 'dwell') { setBillableHours(auditResult.billableDetentionHours); setDetentionMode('billable'); }
+              else setDetentionMode('dwell');
+            }} style={{ marginTop: 8, minHeight: 36 }}>
+              {detentionMode === 'dwell' ? 'Enter billable hours directly' : 'Calculate from total dwell'}
+            </button>
           </div>
 
           {/* Operational Exception Adders */}
@@ -254,6 +249,7 @@ export const AccessorialRateCardModal: React.FC<AccessorialRateCardModalProps> =
                 Total: ${auditResult.totalAmount.toFixed(2)}
               </span>
             </div>
+            <p style={{ fontSize: 11, color: '#475569', margin: '0 0 8px' }}>Line values are rounded for display; the total uses unrounded quantities and rates.</p>
             {auditResult.items.length === 0 ? (
               <p style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic', margin: 0 }}>
                 No billable accessorial items triggered.
@@ -327,6 +323,6 @@ export const AccessorialRateCardModal: React.FC<AccessorialRateCardModalProps> =
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

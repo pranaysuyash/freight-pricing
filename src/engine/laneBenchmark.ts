@@ -1,9 +1,9 @@
 /**
  * Freight Pricing Lane Benchmark & Market Density Engine.
  * 
- * Benchmarks spot and contract freight quotes against historical 30-day rate bands,
+ * Benchmarks spot and contract freight quotes against illustrative rate bands,
  * equipment-specific load-to-truck ratios (LTR), and 7-day forward forecasts
- * modeled after DAT iQ RateView and FreightWaves SONAR market telemetry.
+ * using synthetic presets. No live provider data or validated acceptance prediction is used.
  */
 
 export type EquipmentCategory = 'DRY_VAN' | 'REEFER' | 'FLATBED';
@@ -114,7 +114,7 @@ export function evaluateMarketCondition(ltr: number): CorridorMarketProfile['mar
 }
 
 /**
- * Compares a proposed quote against corridor rate bands and estimates carrier tender acceptance probability.
+ * Compares a proposed quote against synthetic corridor bands. The retained numeric field is an illustrative score, not a validated probability.
  */
 export function benchmarkQuoteAgainstMarket(
   proposedRatePerMile: number,
@@ -141,16 +141,16 @@ export function benchmarkQuoteAgainstMarket(
   if (proposedRatePerMile < profile.rateBand.low15thPct) {
     status = 'BELOW_MARKET_AT_RISK';
     acceptanceProb = Math.max(15, Math.round(50 + deltaPct * 1.5));
-    recommendation = `Quote ($${proposedRatePerMile.toFixed(2)}/mi) is below 15th percentile ($${profile.rateBand.low15thPct.toFixed(2)}/mi). High risk of carrier bounce/rejection in ${profile.marketCondition.toLowerCase()} market. Recommend raising to at least $${profile.rateBand.medianContract.toFixed(2)}/mi.`;
+    recommendation = `Quote ($${proposedRatePerMile.toFixed(2)}/mi) is below 15th percentile ($${profile.rateBand.low15thPct.toFixed(2)}/mi). Illustrative scenario only; carrier response and market conditions are unknown.`;
   } else if (proposedRatePerMile > profile.rateBand.high85thSpot) {
     status = 'ABOVE_MARKET_PREMIUM';
     acceptanceProb = 98;
-    recommendation = `Quote ($${proposedRatePerMile.toFixed(2)}/mi) exceeds 85th percentile spot rate ($${profile.rateBand.high85thSpot.toFixed(2)}/mi). Instant carrier acceptance guaranteed, but shipper margin may be eroded by ${deltaPct}% above median.`;
+    recommendation = `Quote ($${proposedRatePerMile.toFixed(2)}/mi) exceeds 85th percentile spot rate ($${profile.rateBand.high85thSpot.toFixed(2)}/mi). Illustrative scenario only; carrier acceptance and actual market prices are unknown.`;
   } else {
     status = 'FAIR_MARKET';
-    // Acceptance in balanced market scales smoothly between 70% and 92%
+    // Retained scenario score scales within the synthetic band; it is not a prediction.
     acceptanceProb = Math.min(95, Math.max(70, Math.round(80 + deltaPct * 0.8)));
-    recommendation = `Quote ($${proposedRatePerMile.toFixed(2)}/mi) sits comfortably within fair market band ($${profile.rateBand.low15thPct.toFixed(2)} – $${profile.rateBand.high85thSpot.toFixed(2)}/mi). Expected tender acceptance: ${acceptanceProb}%.`;
+    recommendation = `Quote ($${proposedRatePerMile.toFixed(2)}/mi) sits comfortably within fair market band ($${profile.rateBand.low15thPct.toFixed(2)} – $${profile.rateBand.high85thSpot.toFixed(2)}/mi). Illustrative scenario only; carrier acceptance is unknown.`;
   }
 
   return {
